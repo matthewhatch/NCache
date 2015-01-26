@@ -123,7 +123,7 @@ Describe 'Get-CacheCount' {
     Mock Invoke-Command -ModuleName NCache {
         $results = @"
 
-Cache item count: 0
+Cache item count:10
 "@
 
         Write-Output ($results -split '\r?\n')
@@ -166,5 +166,9 @@ Cache item count: 0
 
     It 'returns a positive value' {
         $CacheCount.Count -ge 0 | Should Be $true
+    }
+
+    It 'returns a cache count of 10' {
+        $CacheCount.Count | Should Be 10
     }
 }
