@@ -30,44 +30,8 @@ function Get-CacheDetails{
             Write-Output $results
         }
 
-        function __validateCacheResults{
-            param([PSObject]$CacheResults)
-        
-            $isValid = $true
-            do{
-                if($CacheResults.CacheID -ne $CacheID){
-                    Write-Verbose "CacheID $CacheID is not Valid"
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Status -ne 'Running'){
-                    Write-Verbose "Status $($CacheResults.Status) is not Valid"
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Capacity -notmatch 'MB'){
-                    Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
-                    $isValid =$false 
-                    break
-                }
-
-                if($CacheResults.Clustersize -notmatch '\d+'){
-                    Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"   
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Count -notmatch '\d+'){
-                    Write-Verbose "Count $($CacheResults.Count) is not valid"
-                    $isValid = $false
-                    break
-                }
-
-            }
-            while($false)
-            return $isValid
+        Function Get-CacheList {
+            & listcaches /a   
         }
     
     }
@@ -75,7 +39,7 @@ function Get-CacheDetails{
         foreach($Computer in $ComputerName){
             
             if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
-                try{$CacheDetails = & listcaches /a}
+                try{$CacheDetails = Get-CacheList }#& listcaches /a}
                 catch{ Write-Warning "there was an issue retrieving $CacheID Details from $Computer"}    
             }
             else{
@@ -201,5 +165,45 @@ function __get-CacheStartIndex{
         $i++
     }
 }
+
+function __validateCacheResults{
+            param([PSObject]$CacheResults)
+        
+            $isValid = $true
+            do{
+                if($CacheResults.CacheID -ne $CacheID){
+                    Write-Verbose "CacheID $CacheID is not Valid"
+                    $isValid = $false
+                    break
+                }
+
+                if($CacheResults.Status -ne 'Running'){
+                    Write-Verbose "Status $($CacheResults.Status) is not Valid"
+                    $isValid = $false
+                    break
+                }
+
+                if($CacheResults.Capacity -notmatch 'MB'){
+                    Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
+                    $isValid =$false 
+                    break
+                }
+
+                if($CacheResults.Clustersize -notmatch '\d+'){
+                    Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"   
+                    $isValid = $false
+                    break
+                }
+
+                if($CacheResults.Count -notmatch '\d+'){
+                    Write-Verbose "Count $($CacheResults.Count) is not valid"
+                    $isValid = $false
+                    break
+                }
+
+            }
+            while($false)
+            return $isValid
+        }
 
 Export-ModuleMember -Function Get-Cache*
