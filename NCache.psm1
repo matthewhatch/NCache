@@ -128,6 +128,66 @@
    
 }
 
+Function Get-CacheCount{
+    <#
+        .SYNOPIS 
+        Returns the number of items for the cache specified
+
+        .DESCRIPTION
+        See Synopis
+
+        .PARAMETER CacheID
+        ID of the cache to retreive the count for
+
+        .PARAMETER ComputerName
+        The Name of the server to retreive the cache count from
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$CacheID,
+
+        [string[]]$ComputerName = $env:COMPUTERNAME,
+
+        [PSCredential]$Credential
+    )
+
+    $CacheCountBlock = {
+        param ($CacheID)
+        $results = & getcachecount $CacheId /nologo
+        Write-Output $results
+    }
+
+    foreach($Computer in $ComputerName){
+        Write-Verbose "Getting the cache count for $CacheID on $Computer"
+        
+        if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
+            $CacheCount = & getcachecount $CacheId /nologo
+        }
+        else{
+            $cimParameters = @{
+                ComputerName = $Computer
+                ScriptBlock = $CacheCountBlock
+                ArgumentList = $CacheID
+            }
+
+            if($PSBoundParameters.ContainsKey('Credential')){
+                $cimParameters.Add('Credential',$Credential)
+            }
+
+            $CacheCount = Invoke-Command @cimParameters
+        }
+        
+        $properties = @{
+            ComputerName = $Computer
+            CacheID = $CacheID
+            Count = $CacheCount[1].Substring(($CacheCount[1].IndexOf(':') + 1)).replace(' ','')
+        }
+
+        $resultObject = New-Object -TypeName PSObject -Property $properties
+        Write-Output $resultObject
+    }
+}
+
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
 
@@ -142,4 +202,4 @@ function __get-CacheStartIndex{
     }
 }
 
-Export-ModuleMember -Function Get-CacheDetails
+Export-ModuleMember -Function Get-Cache*

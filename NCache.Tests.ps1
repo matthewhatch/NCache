@@ -1,9 +1,9 @@
-﻿Import-Module ./NCache.psm1 -Force
+﻿Import-Module ./NCache.psm1  -Prefix 'Test' -Force
 $cred = Get-Credential
 
-Describe 'Get-CacheDetails' {
-    $Cache = Get-CacheDetails -ComputerName 'johncachd01' -CacheID 'extranetcache' -Credential $cred
-    $params = (Get-Command Get-CacheDetails).Parameters
+Describe 'Get-TestCacheDetails' {
+    $Cache = Get-TestCacheDetails -ComputerName 'johncachd01' -CacheID 'extranetcache' -Credential $cred
+    $params = (Get-Command Get-TestCacheDetails).Parameters
 
     It 'accepts Credential as a parameter'{
         $params.ContainsKey('Credential') | Should Be $true
@@ -55,5 +55,42 @@ Describe 'Get-CacheDetails' {
 
     It 'returns a status of Running or Stopped' {
         $Cache.Status -eq 'Running' -or $Cache.Status -eq 'Stopped' | Should Be $true
+    }
+}
+
+Describe 'Get-TestCacheCount' {
+    $CacheCount = Get-TestCacheCount -CacheID ExtranetCache -ComputerName johncachd01 -Credential $cred
+    $params = (Get-Command Get-TestCacheCount).Parameters
+    
+    It 'Accepts Credential as a parameter'{
+        $params.ContainsKey('Credential') | Should Be $true    
+    }
+
+    It 'returns an object with property ComputerName' {
+        (Get-Member -InputObject $CacheCount).Name -contains 'ComputerName' | Should Be $true    
+    }
+
+    It 'returns an object with property CacheId' {
+        (Get-Member -InputObject $CacheCount).Name -contains 'CacheId' | Should Be $true    
+    }
+
+    It 'returns an object with property Count' {
+        (Get-Member -InputObject $CacheCount).Name -contains 'Count' | Should Be $true    
+    }
+
+    It 'returns extranetcache as the cacheID' {
+        $CacheCount.CacheID | Should Be 'extranetcache'
+    }
+
+    It 'returns johncachd01 as the ComputerName' {
+        $CacheCount.ComputerName | Should Be 'johncachd01'
+    }
+
+    It 'returns a string that can be cast to an int as the Count' {
+        ($CacheCount.Count -As [Int16]).GetType().Name | Should Be 'Int16'
+    }
+
+    It 'returns a positive value' {
+        $CacheCount.Count -ge 0 | Should Be $true
     }
 }
