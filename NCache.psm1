@@ -1,6 +1,4 @@
-﻿function Get-CacheDetails{
-    
-    <#
+﻿<#
         .Synopsis
         Returns the detailed information about ncache cache
 
@@ -15,6 +13,7 @@
         Name of the Cache that to return the details of
             
     #>
+function Get-CacheDetails{
     [CmdletBinding()]
     param(
         [string[]]$ComputerName = $env:COMPUTERNAME,
@@ -128,8 +127,7 @@
    
 }
 
-Function Get-CacheCount{
-    <#
+<#
         .SYNOPIS 
         Returns the number of items for the cache specified
 
@@ -142,6 +140,8 @@ Function Get-CacheCount{
         .PARAMETER ComputerName
         The Name of the server to retreive the cache count from
     #>
+Function Get-CacheCount{
+    
     [CmdletBinding()]
     param(
         [string]$CacheID,
