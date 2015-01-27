@@ -220,6 +220,12 @@ Status:         Stopped
         }
     }
 
+    Context 'Get-CacheDetails from Array of Remote Caches' {
+        $CacheArray = Get-TestCacheDetails -ComputerName someserver -CacheID somecache,someothercache_DEV
+        It 'returns two objects when an array of two caches is passed to CacheID parameter' {
+            $CacheArray.Count | Should Be 2    
+        }
+    }
     
     Context 'Get-CacheDetails parameters' {
         It 'accepts Credential as a parameter'{

@@ -81,12 +81,13 @@ function Get-CacheDetails{
             
                     $detailsObject = New-Object -TypeName PSObject -Property $properties
             
-                    Remove-Variable -Name properties
-                    Remove-Variable -Name CacheDetails
-            
-                    if((__ValidateCacheResults $detailsObject)){Write-Output $detailsObject}
+
+                    Write-Verbose "validating $cache"
+                    if((__ValidateCacheResults $detailsObject $cache)){Write-Output $detailsObject}
                 }
 
+                Remove-Variable -Name properties
+                Remove-Variable -Name CacheDetails
             }     
         }
     }
@@ -157,27 +158,30 @@ Function Get-CacheCount{
 
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
-
+    Write-Verbose "Getting the start Index for $CacheID"
+       
     #Find the line where cacheid matches the cache if passed
     $i = 0 #start of the array
     while($i -lt ($Cachelist.Length -1)){
         if($Cachelist[$i] -match $CacheID){
             return $i
-            break
         }
         $i++
     }
 }
 
 function __validateCacheResults{
-    param([PSObject]$CacheResults)
+    param(
+        [PSObject]$CacheResults,
+        [string]$cache
+    )
         
     $isValid = $true
     do{
-        if($CacheResults.CacheID -ne $CacheID){
-            Write-Verbose "CacheID $CacheID is not Valid"
+        if($CacheResults.CacheID -ne $cache){
+            Write-Verbose "CacheID $cache is not Valid"
             $isValid = $false
-            break
+            return
         }
 
         if($CacheResults.Status -ne 'Running'){
