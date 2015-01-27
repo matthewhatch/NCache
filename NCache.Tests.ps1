@@ -8,8 +8,41 @@ $secpasswd = ConvertTo-SecureString 'PlainTextPassword' -AsPlainText -Force
 $Cred = New-Object -TypeName PSCredential('username',$secpasswd)
 
 Describe 'Get-CacheDetails' {
+    
+    $params = (Get-Command Get-TestCacheDetails).Parameters
+    $help = Get-Help Get-TestCacheDetails
+    
+    Mock -CommandName Get-CacheList -ModuleName NCache {
+        $listcaches = @"
+Listing registered caches on SOMESERVER:8250
+
+Cache-ID:       somecache
+Scheme:         replicated-server
+Status:         Running
+Cluster size:   2
+                1.2.12.60:7802
+                1.4.45.36:7802
+UpTime:         11/24/2014 6:27:16 AM
+Capacity:       250 MB
+Count:          0
+
+Cache-ID:       SomeOtherCache_DEV
+Scheme:         replicated-server
+Status:         Running
+Cluster size:   2
+                1.2.12.60:7804
+                1.4.45.36:7804
+UpTime:         11/24/2014 6:27:26 AM
+Capacity:       1000 MB
+Count:          16
+
+"@
+
+            Write-Output ($listcaches -split '\r?\n')     
+    }
+
     Mock -CommandName Invoke-Command -ModuleName NCache {
-        $results = @"
+        $listcaches = @"
 Listing registered caches on SOMESERVER:8250
 
 Cache-ID:       mypartitionedcache
@@ -53,69 +86,156 @@ Status:         Stopped
 Cache-ID:       mycache
 Scheme:         local-cache
 Status:         Stopped
-"@  
+"@
 
-    Write-Output ($results -split '\r?\n')
+            Write-Output ($listcaches -split '\r?\n')
     }
 
-    $Cache = Get-TestCacheDetails -ComputerName 'someserver' -CacheID 'somecache' -Credential $cred
-    $params = (Get-Command Get-TestCacheDetails).Parameters
+    Context 'Get-Help Get-CacheDetails'{
+        It 'Should have a synopis' {
+            $help.synopsis | Should Not Be $null
+        }
+        
+        It 'Should have a description' {
+            $help.description.Text | Should Not Be $null
+        }
+        
+        It 'Should contain help for ComputerName parameter' {
+            $help.parameters.parameter[0].name | Should Be 'ComputerName'
+        }
+        
+        It 'Should contain help for CacheID parameter' {
+            $help.parameters.parameter[1].name | Should Be 'CacheID'
+        }    
+    }
+    Context 'Get-CacheDetails from local cache' {
+        $localCache = Get-TestCacheDetails -CacheID 'somecache'
 
-    It 'Calls Get-CacheList 1 time'{
-        Assert-MockCalled Invoke-Command -ModuleName NCache -Exactly 1
+        It 'Calls Get-CacheList 1 Time' {
+            Assert-MockCalled -CommandName Get-CacheList -ModuleName NCache -Exactly 1
+        }
+
+        It 'returns an object' {
+            $localCache.GetType().Name | Should Be 'PSCustomObject'
+        }
+
+        It 'returns object with cache id somecache' {
+            $localCache.CacheID | Should Be 'somecache'   
+        }
+
+        It 'returns a int as cluster size' {
+            ($localCache.ClusterSize -as [System.Int16]).GetType().Name | Should Be 'Int16'
+        }
+
+        It 'returns somecache as the cacheID' {
+            $localCache.CacheID | Should Be 'somecache'
+        }
+
+        It 'returns someserver as Server' {
+            $localCache.ComputerName | Should Be $env:Computername
+        }
+
+                It 'returns an object with property CacheID' {
+            (Get-Member -InputObject $localCache).Name -contains 'CacheID' | Should Be $true
+        } 
+
+        It 'returns an object with property ComputerName' {
+            (Get-Member -InputObject $localCache).Name -contains 'ComputerName' | Should Be $true
+        } 
+
+        It 'returns an object with property Count' {
+            (Get-Member -InputObject $localCache).Name -contains 'Count' | Should Be $true
+        } 
+
+        It 'returns an object with property ClusterSize' {
+            (Get-Member -InputObject $localCache).Name -contains 'ClusterSize' | Should Be $true
+        } 
+
+        It 'returns an object with property Uptime' {
+            (Get-Member -InputObject $localCache).Name -contains 'Uptime' | Should Be $true
+        } 
+
+        It 'returns an object with property Status' {
+            (Get-Member -InputObject $localCache).Name -contains 'Status' | Should Be $true
+        } 
+
+        It 'returns a status of Running or Stopped' {
+            $localCache.Status -eq 'Running' -or $localCache.Status -eq 'Stopped' | Should Be $true
+        }
+    }
+    Context 'Get-CacheDetails from remote cache' {
+      
+        $Cache = Get-TestCacheDetails -ComputerName 'someserver' -CacheID 'somecache' -Credential $cred
+
+        It 'Calls Invoke-Commmand 1 time'{
+            Assert-MockCalled Invoke-Command -ModuleName NCache -Exactly 1
+        }
+
+        It 'returns an object' {
+            $Cache.GetType().Name | Should Be 'PSCustomObject'
+        }
+
+        It 'returns object with cache id somecache' {
+            $Cache.CacheID | Should Be 'somecache'   
+        }
+
+        It 'returns a int as cluster size' {
+            ($Cache.ClusterSize -as [System.Int16]).GetType().Name | Should Be 'Int16'
+        }
+
+        It 'returns somecache as the cacheID' {
+            $Cache.CacheID | Should Be 'somecache'
+        }
+
+        It 'returns someserver as Server' {
+            $Cache.ComputerName | Should Be 'someserver'
+        }
+    
+        It 'returns an object with property CacheID' {
+            (Get-Member -InputObject $Cache).Name -contains 'CacheID' | Should Be $true
+        } 
+
+        It 'returns an object with property ComputerName' {
+            (Get-Member -InputObject $Cache).Name -contains 'ComputerName' | Should Be $true
+        } 
+
+        It 'returns an object with property Count' {
+            (Get-Member -InputObject $Cache).Name -contains 'Count' | Should Be $true
+        } 
+
+        It 'returns an object with property ClusterSize' {
+            (Get-Member -InputObject $Cache).Name -contains 'ClusterSize' | Should Be $true
+        } 
+
+        It 'returns an object with property Uptime' {
+            (Get-Member -InputObject $Cache).Name -contains 'Uptime' | Should Be $true
+        } 
+
+        It 'returns an object with property Status' {
+            (Get-Member -InputObject $Cache).Name -contains 'Status' | Should Be $true
+        } 
+
+        It 'returns a status of Running or Stopped' {
+            $Cache.Status -eq 'Running' -or $Cache.Status -eq 'Stopped' | Should Be $true
+        }
     }
 
-    It 'accepts Credential as a parameter'{
-        $params.ContainsKey('Credential') | Should Be $true
-    }
+    
+    Context 'Get-CacheDetails parameters' {
+        It 'accepts Credential as a parameter'{
+            $params.ContainsKey('Credential') | Should Be $true
+        }
 
-    It 'returns an object' {
-        $Cache.GetType().Name | Should Be 'PSCustomObject'
-    }
+        It 'accepts ComputerName as a parameter' {
+            $params.ContainsKey('ComputerName') | Should Be $true
+        }
 
-    It 'returns object with cache id somecache' {
-        $Cache.CacheID | Should Be 'somecache'   
-    }
-
-    It 'returns a int as cluster size' {
-        ($Cache.ClusterSize -as [System.Int16]).GetType().Name | Should Be 'Int16'
-    }
-
-    It 'returns somecache as the cacheID' {
-        $Cache.CacheID | Should Be 'somecache'
-    }
-
-    It 'returns someserver as Server' {
-        $Cache.ComputerName | Should Be 'someserver'
+        It 'accepts CacheID as a parameter' {
+            $params.ContainsKey('CacheID') | Should Be $true
+        }
     }
     
-    It 'returns an object with property CacheID' {
-        (Get-Member -InputObject $Cache).Name -contains 'CacheID' | Should Be $true
-    } 
 
-    It 'returns an object with property ComputerName' {
-        (Get-Member -InputObject $Cache).Name -contains 'ComputerName' | Should Be $true
-    } 
-
-    It 'returns an object with property Count' {
-        (Get-Member -InputObject $Cache).Name -contains 'Count' | Should Be $true
-    } 
-
-    It 'returns an object with property ClusterSize' {
-        (Get-Member -InputObject $Cache).Name -contains 'ClusterSize' | Should Be $true
-    } 
-
-    It 'returns an object with property Uptime' {
-        (Get-Member -InputObject $Cache).Name -contains 'Uptime' | Should Be $true
-    } 
-
-    It 'returns an object with property Status' {
-        (Get-Member -InputObject $Cache).Name -contains 'Status' | Should Be $true
-    } 
-
-    It 'returns a status of Running or Stopped' {
-        $Cache.Status -eq 'Running' -or $Cache.Status -eq 'Stopped' | Should Be $true
-    }
 }
 
 Describe 'Get-CacheCount' {

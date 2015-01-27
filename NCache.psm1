@@ -1,18 +1,25 @@
 ﻿<#
-        .Synopsis
-        Returns the detailed information about ncache cache
+    .Synopsis
+    Returns the detailed information about ncache cache
 
-        .Description
-        Returns detailed information about an ncache cache that is passed to the
-        CacheID parameter
+    .Description
+    Returns detailed information about an ncache distributed cache based
+    on the CacheID that is passed with the CacheID parameter. This is equivalent to 
+    running the Alachisift command listcaches /a,  however it targets a specific Cache ID.
 
-        .Parameter ComputerName
-        Name of the server to retreive cache information from
+    .Parameter ComputerName
+    Target machines or an Array of target machines
 
-        .Parameter CacheID
-        Name of the Cache that to return the details of
+    .Parameter CacheID
+    Name of the Cache on the target machine
+
+    .Example
+    Get-CacheDetails -ComputerName Server01 -CacheID Cache00001
+
+    .Example
+    Get-CacheDetails -ComputerName Server01,Server02 -CacheID Cache00001
             
-    #>
+#>
 function Get-CacheDetails{
     [CmdletBinding()]
     param(
@@ -28,10 +35,6 @@ function Get-CacheDetails{
         $CacheDetailsBlock = {
             $results = & listcaches /a
             Write-Output $results
-        }
-
-        Function Get-CacheList {
-            & listcaches /a   
         }
     
     }
@@ -92,18 +95,18 @@ function Get-CacheDetails{
 }
 
 <#
-        .SYNOPIS 
-        Returns the number of items for the cache specified
+    .SYNOPIS 
+    Returns the number of items for the cache specified
 
-        .DESCRIPTION
-        See Synopis
+    .DESCRIPTION
+    See Synopis
 
-        .PARAMETER CacheID
-        ID of the cache to retreive the count for
+    .PARAMETER CacheID
+    ID of the cache to retreive the count for
 
-        .PARAMETER ComputerName
-        The Name of the server to retreive the cache count from
-    #>
+    .PARAMETER ComputerName
+    The Name of the server to retreive the cache count from
+#>
 Function Get-CacheCount{
     
     [CmdletBinding()]
@@ -167,43 +170,48 @@ function __get-CacheStartIndex{
 }
 
 function __validateCacheResults{
-            param([PSObject]$CacheResults)
+    param([PSObject]$CacheResults)
         
-            $isValid = $true
-            do{
-                if($CacheResults.CacheID -ne $CacheID){
-                    Write-Verbose "CacheID $CacheID is not Valid"
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Status -ne 'Running'){
-                    Write-Verbose "Status $($CacheResults.Status) is not Valid"
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Capacity -notmatch 'MB'){
-                    Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
-                    $isValid =$false 
-                    break
-                }
-
-                if($CacheResults.Clustersize -notmatch '\d+'){
-                    Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"   
-                    $isValid = $false
-                    break
-                }
-
-                if($CacheResults.Count -notmatch '\d+'){
-                    Write-Verbose "Count $($CacheResults.Count) is not valid"
-                    $isValid = $false
-                    break
-                }
-
-            }
-            while($false)
-            return $isValid
+    $isValid = $true
+    do{
+        if($CacheResults.CacheID -ne $CacheID){
+            Write-Verbose "CacheID $CacheID is not Valid"
+            $isValid = $false
+            break
         }
+
+        if($CacheResults.Status -ne 'Running'){
+            Write-Verbose "Status $($CacheResults.Status) is not Valid"
+            $isValid = $false
+            break
+        }
+
+        if($CacheResults.Capacity -notmatch 'MB'){
+            Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
+            $isValid =$false 
+            break
+        }
+
+        if($CacheResults.Clustersize -notmatch '\d+'){
+            Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"   
+            $isValid = $false
+            break
+        }
+
+        if($CacheResults.Count -notmatch '\d+'){
+            Write-Verbose "Count $($CacheResults.Count) is not valid"
+            $isValid = $false
+            break
+        }
+
+    }
+    while($false)
+    return $isValid
+}
+
+Function Get-CacheList {
+    $results = & listcaches /a
+    Write-Output $results   
+}
 
 Export-ModuleMember -Function Get-Cache*
