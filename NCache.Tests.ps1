@@ -298,3 +298,24 @@ Cache item count:10
         $CacheCount.Count | Should Be 10
     }
 }
+
+Describe 'Clear-Cache' {
+    Context 'Parameters' {
+        $params = (Get-Command Clear-TestCache).Parameters
+        
+        It 'should accept ComputerName as a parameter' {
+            $params.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter' {
+            $params.ContainsKey('CacheId') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter' {
+            $params.ContainsKey('Credential') | Should Be $true
+        }
+
+    }
+
+    
+}

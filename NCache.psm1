@@ -156,6 +156,62 @@ Function Get-CacheCount{
     }
 }
 
+<#
+    .Synopsis
+        Clears Cache
+
+    .Description
+        Clears Ncache on specified target and CacheID
+
+    .Parameter ComputerName
+        Name of the target machine
+
+    .Parameter CacheID
+        Name of the target Cache
+
+    .Example
+        $MyCreds = Get-Credential
+        Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
+
+#>
+Function Clear-Cache {
+    [CmdletBinding()]
+    param(
+        [string[]]$ComputerName = $env:COMPUTERNAME,
+
+        [Parameter(Mandatory=$true)]
+        [string]$CacheID,
+
+        [PSCredential]$Credential
+    )
+
+    BEGIN{
+        $ClearCacheBlock = {
+            param($CacheID)
+            
+            & clearcache $CacheID /f
+        }
+    }
+
+    PROCESS {
+        foreach ($Computer in $ComputerName) {
+            if($Computer -eq $env:COMPUTERNAME){
+                $results = & clearcache $CacheID /f    
+            }
+            else{
+                $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+            }
+            
+            if(-not($results -match 'Cache cleared')){
+                 Write-Warning 'There was an issue clearing cache Message:'
+                 Write-Warning "$results"
+            }
+        }    
+    }
+
+    END {}
+
+}
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
@@ -219,3 +275,4 @@ Function Get-CacheList {
 }
 
 Export-ModuleMember -Function Get-Cache*
+Export-ModuleMember -Function Clear-Cache
