@@ -175,7 +175,11 @@ Function Get-CacheCount{
 
 #>
 Function Clear-Cache {
+<<<<<<< HEAD
     [CmdletBinding(SupportsShouldProcess=$true)]
+=======
+    [CmdletBinding()]
+>>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
     param(
         [string[]]$ComputerName = $env:COMPUTERNAME,
 
@@ -195,6 +199,7 @@ Function Clear-Cache {
 
     PROCESS {
         foreach ($Computer in $ComputerName) {
+<<<<<<< HEAD
             if($PSCmdlet.ShouldProcess("$Computer $CacheID")){
                 if($Computer -eq $env:COMPUTERNAME){
                     $results = & clearcache $CacheID /f    
@@ -270,12 +275,29 @@ Function Get-CacheItem {
             
             
         }
+=======
+            if($Computer -eq $env:COMPUTERNAME){
+                $results = & clearcache $CacheID /f    
+            }
+            else{
+                $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+            }
+            
+            if(-not($results -match 'Cache cleared')){
+                 Write-Warning 'There was an issue clearing cache Message:'
+                 Write-Warning "$results"
+            }
+        }    
+>>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
     }
 
     END {}
 
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
@@ -333,5 +355,13 @@ function __validateCacheResults{
     return $isValid
 }
 
+<<<<<<< HEAD
+=======
+Function Get-CacheList {
+    $results = & listcaches /a
+    Write-Output $results   
+}
+
+>>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Clear-Cache
