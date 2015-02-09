@@ -298,3 +298,60 @@ Cache item count:10
         $CacheCount.Count | Should Be 10
     }
 }
+
+Describe 'Clear-Cache' {
+    Context 'Parameters' {
+        $params = (Get-Command Clear-TestCache).Parameters
+        
+        It 'should accept ComputerName as a parameter' {
+            $params.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter' {
+            $params.ContainsKey('CacheId') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter' {
+            $params.ContainsKey('Credential') | Should Be $true
+        }
+
+    }
+}
+
+Describe 'Get-CacheList' {
+    Mock -CommandName Invoke-Command -ModuleName NCache {
+        $dumpcache = @"
+GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
+"@
+    Write-Output $dumpcache
+    }
+    Context 'Parameters' {
+        $params = (Get-Command Get-CacheItem).Parameters
+        
+        It 'should accept ComputerName as a parameter' {
+            $params.ContainsKey('ComputerName') | Should Be $true
+        } 
+
+        It 'should accept CacheID as a parameter' {
+            $params.ContainsKey('CacheID') | Should Be $true
+        }
+
+        It 'should accept Credential as a parameter' {
+            $params.ContainsKey('Credential') | Should Be $true
+        }
+    }
+    
+    $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
+    
+    It 'should call Invoke-Command 1 time' {
+        Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
+    }
+
+    It 'Should return an object with with a Key GetProspectClientOrgIds' {
+        $CacheItems[0].CacheKey | Should Be 'GetProspectClientOrgIds'
+    }
+
+    It 'Should return an object with a Value 2503a9cd-b7e4-49a8-a0ec-f921e358432eafm' {
+        $CacheItems[0].CacheValue | Should Be '2503a9cd-b7e4-49a8-a0ec-f921e358432eafm'
+    }
+}

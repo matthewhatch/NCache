@@ -156,6 +156,126 @@ Function Get-CacheCount{
     }
 }
 
+<#
+    .Synopsis
+        Clears Cache
+
+    .Description
+        Clears Ncache on specified target and CacheID
+
+    .Parameter ComputerName
+        Name of the target machine
+
+    .Parameter CacheID
+        Name of the target Cache
+
+    .Example
+        $MyCreds = Get-Credential
+        Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
+
+#>
+Function Clear-Cache {
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+        [string[]]$ComputerName = $env:COMPUTERNAME,
+
+        [Parameter(Mandatory=$true)]
+        [string]$CacheID,
+
+        [PSCredential]$Credential
+    )
+
+    BEGIN{
+        $ClearCacheBlock = {
+            param($CacheID)
+            
+            & clearcache $CacheID /f
+        }
+    }
+
+    PROCESS {
+        foreach ($Computer in $ComputerName) {
+            if($PSCmdlet.ShouldProcess("$Computer $CacheID")){
+                if($Computer -eq $env:COMPUTERNAME){
+                    $results = & clearcache $CacheID /f    
+                }
+                else{
+                    $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+                }
+            
+                if(-not($results -match 'Cache cleared')){
+                     Write-Warning 'There was an issue clearing cache Message:'
+                     Write-Warning "$results"
+                }
+            }
+            
+        }    
+    }
+
+    END {}
+
+}
+
+<#
+    .Synopsis
+        Get Items in Cache
+    
+    .Description
+        Gets Items in the Target Cache from the Target Server.  This uses the dumpcache cmdline utility and returns the 
+        data as a PSObject
+        
+    .Parameter Computer
+        Target Server
+
+    .Parameter CacheID
+        Target Cache
+
+    .Parameter Credential
+        Credential used to connect to the remote server
+
+    .Example Get-CacheItem -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
+       
+#>
+Function Get-CacheItem {
+    [CmdletBinding()]
+    param(
+        [string]$ComputerName,
+
+        [Parameter(Mandatory=$true)]
+        [string]$CacheID,
+
+        [PSCredential]$Credential = (Get-Credential)
+    )
+
+    BEGIN{
+        $GetCacheItemBlock = {
+            param($CacheID)
+            & dumpcache $CacheID /nologo
+        }
+    }
+
+    PROCESS {
+        $results = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $GetCacheItemBlock -ArgumentList $CacheID
+       
+        foreach($result in $results){
+            if($result -notmatch 'Alachisoft' -and (-not[string]::IsNullOrEmpty($result)) -and $result -notmatch 'KeyCount' -and $result -notmatch 'Cache Count'){
+                $resultArray = $result -split '_'
+                $properties = @{
+                    CacheKey = $resultArray[0]
+                    CacheValue = $resultArray[1]
+                    CacheID = $CacheID
+                }
+                Write-Output (New-Object -TypeName PSObject -Property $properties)
+            }
+            
+            
+        }
+    }
+
+    END {}
+
+}
+
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
@@ -213,9 +333,5 @@ function __validateCacheResults{
     return $isValid
 }
 
-Function Get-CacheList {
-    $results = & listcaches /a
-    Write-Output $results   
-}
-
 Export-ModuleMember -Function Get-Cache*
+Export-ModuleMember -Function Clear-Cache
