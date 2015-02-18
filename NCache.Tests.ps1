@@ -316,7 +316,6 @@ Describe 'Clear-Cache' {
         }
 
     }
-<<<<<<< HEAD
 }
 
 Describe 'Get-CacheList' {
@@ -355,8 +354,4 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
     It 'Should return an object with a Value 2503a9cd-b7e4-49a8-a0ec-f921e358432eafm' {
         $CacheItems[0].CacheValue | Should Be '2503a9cd-b7e4-49a8-a0ec-f921e358432eafm'
     }
-=======
-
-    
->>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
 }
