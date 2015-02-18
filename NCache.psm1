@@ -108,7 +108,7 @@ function Get-CacheDetails{
     .PARAMETER ComputerName
     The Name of the server to retreive the cache count from
 #>
-Function Get-CacheCount{
+function Get-CacheCount{
     
     [CmdletBinding()]
     param(
@@ -174,12 +174,8 @@ Function Get-CacheCount{
         Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
 
 #>
-Function Clear-Cache {
-<<<<<<< HEAD
+function Clear-Cache {
     [CmdletBinding(SupportsShouldProcess=$true)]
-=======
-    [CmdletBinding()]
->>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
     param(
         [string[]]$ComputerName = $env:COMPUTERNAME,
 
@@ -199,7 +195,6 @@ Function Clear-Cache {
 
     PROCESS {
         foreach ($Computer in $ComputerName) {
-<<<<<<< HEAD
             if($PSCmdlet.ShouldProcess("$Computer $CacheID")){
                 if($Computer -eq $env:COMPUTERNAME){
                     $results = & clearcache $CacheID /f    
@@ -241,7 +236,7 @@ Function Clear-Cache {
     .Example Get-CacheItem -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
        
 #>
-Function Get-CacheItem {
+function Get-CacheItem {
     [CmdletBinding()]
     param(
         [string]$ComputerName,
@@ -275,7 +270,6 @@ Function Get-CacheItem {
             
             
         }
-=======
             if($Computer -eq $env:COMPUTERNAME){
                 $results = & clearcache $CacheID /f    
             }
@@ -288,16 +282,12 @@ Function Get-CacheItem {
                  Write-Warning "$results"
             }
         }    
->>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
     }
 
     END {}
 
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
 function __get-CacheStartIndex{
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
@@ -355,13 +345,10 @@ function __validateCacheResults{
     return $isValid
 }
 
-<<<<<<< HEAD
-=======
-Function Get-CacheList {
+function Get-CacheList {
     $results = & listcaches /a
     Write-Output $results   
 }
 
->>>>>>> c88213f01637a74412088cde95e795e2fcf9d288
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Clear-Cache
