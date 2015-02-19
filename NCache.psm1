@@ -345,10 +345,5 @@ function __validateCacheResults{
     return $isValid
 }
 
-function Get-CacheList {
-    $results = & listcaches /a
-    Write-Output $results   
-}
-
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Clear-Cache
