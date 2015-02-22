@@ -7,6 +7,14 @@
     on the CacheID that is passed with the CacheID parameter. This is equivalent to 
     running the Alachisift command listcaches /a,  however it targets a specific Cache ID.
 
+    The Resulting object will have the following properties: CacheID, ClusterSize, ComputerName, CacheStatus, UpTime
+    
+    CacheID: SomeCache
+    ClusterSize: 2
+    ComputerName: Server01
+    CacheStatus: Running
+    
+
     .Parameter ComputerName
     Target machines or an Array of target machines
 
@@ -18,6 +26,9 @@
 
     .Example
     Get-CacheDetails -ComputerName Server01,Server02 -CacheID Cache00001
+
+    .Example
+    Get-CacheDeatils -ComputerName Server01 -CacheID Cache0001, Cache0002
             
 #>
 function Get-CacheDetails{
@@ -81,7 +92,6 @@ function Get-CacheDetails{
             
                     $detailsObject = New-Object -TypeName PSObject -Property $properties
             
-
                     Write-Verbose "validating $cache"
                     if((__ValidateCacheResults $detailsObject $cache)){Write-Output $detailsObject}
                 }
@@ -289,6 +299,10 @@ function Get-CacheItem {
 }
 
 function __get-CacheStartIndex{
+    <#
+        .Synopsis Validate the results from cache server are valid
+
+    #>
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
        
