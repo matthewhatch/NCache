@@ -356,9 +356,9 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
     }
 }
 
-Describe 'Add-Cache' {
+Describe 'New-Cache' {
     It 'Should Add Clustered Cache' {
-        Add-TestCache -ComputerName 'Server00001' -CacheID 'NewCache'
+        New-TestCache -ComputerName 'Server00001' -CacheID 'NewCache'
         $cache = Get-TestCacheDetails -Computername 'Server00001' -CacheID 'NewCache'
         $cache | should Not Be $null
     }
