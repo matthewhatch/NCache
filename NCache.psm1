@@ -185,7 +185,11 @@ function Get-CacheCount{
 
 #>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 function Clear-Cache {
+=======
+Function Clear-Cache {
+>>>>>>> Stashed changes
 =======
 Function Clear-Cache {
 >>>>>>> Stashed changes
@@ -251,7 +255,11 @@ Function Clear-Cache {
        
 #>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 function Get-CacheItem {
+=======
+Function Get-CacheItem {
+>>>>>>> Stashed changes
 =======
 Function Get-CacheItem {
 >>>>>>> Stashed changes
@@ -286,6 +294,7 @@ Function Get-CacheItem {
                 Write-Output (New-Object -TypeName PSObject -Property $properties)
             }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             
             
         }
@@ -301,6 +310,9 @@ Function Get-CacheItem {
                  Write-Warning "$results"
             }
         }    
+=======
+        }
+>>>>>>> Stashed changes
 =======
         }
 >>>>>>> Stashed changes
@@ -373,7 +385,11 @@ function __validateCacheResults{
 
 Export-ModuleMember -Function Get-Cache*
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 Export-ModuleMember -Function Clear-Cache
+=======
+Export-ModuleMember -Function Clear-Cache
+>>>>>>> Stashed changes
 =======
 Export-ModuleMember -Function Clear-Cache
 >>>>>>> Stashed changes

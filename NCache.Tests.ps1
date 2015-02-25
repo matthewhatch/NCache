@@ -302,11 +302,7 @@ Cache item count:10
 Describe 'Clear-Cache' {
     Context 'Parameters' {
         $params = (Get-Command Clear-TestCache).Parameters
-<<<<<<< Updated upstream
-        
-=======
 
->>>>>>> Stashed changes
         It 'should accept ComputerName as a parameter' {
             $params.ContainsKey('ComputerName') | Should Be $true
         }
@@ -331,17 +327,13 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
     }
     Context 'Parameters' {
         $params = (Get-Command Get-CacheItem).Parameters
-<<<<<<< Updated upstream
-        
         It 'should accept ComputerName as a parameter' {
             $params.ContainsKey('ComputerName') | Should Be $true
-        } 
-=======
+        }
 
         It 'should accept ComputerName as a parameter' {
             $params.ContainsKey('ComputerName') | Should Be $true
         }
->>>>>>> Stashed changes
 
         It 'should accept CacheID as a parameter' {
             $params.ContainsKey('CacheID') | Should Be $true
@@ -351,11 +343,10 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
             $params.ContainsKey('Credential') | Should Be $true
         }
     }
-<<<<<<< Updated upstream
-    
+
     $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
-    
-=======
+
+    $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
 
     $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
 
@@ -372,7 +363,6 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
         $CacheItems[0].CacheValue | Should Be '2503a9cd-b7e4-49a8-a0ec-f921e358432eafm'
     }
 }
-<<<<<<< Updated upstream
 
 Describe 'New-Cache' {
     It 'Should Add Clustered Cache' {
@@ -381,5 +371,3 @@ Describe 'New-Cache' {
         $cache | should Not Be $null
     }
 }
-=======
->>>>>>> Stashed changes
