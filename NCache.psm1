@@ -184,7 +184,11 @@ function Get-CacheCount{
         Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
 
 #>
+<<<<<<< Updated upstream
 function Clear-Cache {
+=======
+Function Clear-Cache {
+>>>>>>> Stashed changes
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [string[]]$ComputerName = $env:COMPUTERNAME,
@@ -246,7 +250,11 @@ function Clear-Cache {
     .Example Get-CacheItem -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
        
 #>
+<<<<<<< Updated upstream
 function Get-CacheItem {
+=======
+Function Get-CacheItem {
+>>>>>>> Stashed changes
     [CmdletBinding()]
     param(
         [string]$ComputerName,
@@ -277,6 +285,7 @@ function Get-CacheItem {
                 }
                 Write-Output (New-Object -TypeName PSObject -Property $properties)
             }
+<<<<<<< Updated upstream
             
             
         }
@@ -292,6 +301,9 @@ function Get-CacheItem {
                  Write-Warning "$results"
             }
         }    
+=======
+        }
+>>>>>>> Stashed changes
     }
 
     END {}
@@ -360,4 +372,8 @@ function __validateCacheResults{
 }
 
 Export-ModuleMember -Function Get-Cache*
+<<<<<<< Updated upstream
 Export-ModuleMember -Function Clear-Cache
+=======
+Export-ModuleMember -Function Clear-Cache
+>>>>>>> Stashed changes
