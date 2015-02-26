@@ -4,16 +4,16 @@
 
     .Description
     Returns detailed information about an ncache distributed cache based
-    on the CacheID that is passed with the CacheID parameter. This is equivalent to 
+    on the CacheID that is passed with the CacheID parameter. This is equivalent to
     running the Alachisift command listcaches /a,  however it targets a specific Cache ID.
 
     The Resulting object will have the following properties: CacheID, ClusterSize, ComputerName, CacheStatus, UpTime
-    
+
     CacheID: SomeCache
     ClusterSize: 2
     ComputerName: Server01
     CacheStatus: Running
-    
+
 
     .Parameter ComputerName
     Target machines or an Array of target machines
@@ -29,7 +29,7 @@
 
     .Example
     Get-CacheDeatils -ComputerName Server01 -CacheID Cache0001, Cache0002
-            
+
 #>
 function Get-CacheDetails{
     [CmdletBinding()]
@@ -47,14 +47,14 @@ function Get-CacheDetails{
             $results = & listcaches /a
             Write-Output $results
         }
-    
+
     }
     PROCESS{
         foreach($Computer in $ComputerName){
-            
+
             if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
                 try{$CacheDetails = Get-CacheList }#& listcaches /a}
-                catch{ Write-Warning "there was an issue retrieving $CacheID Details from $Computer"}    
+                catch{ Write-Warning "there was an issue retrieving $CacheID Details from $Computer"}
             }
             else{
                 try{
@@ -74,11 +74,11 @@ function Get-CacheDetails{
                 }
             }
             if($CacheDetails){
-                
+
                 foreach($cache in $CacheID){
                     $StartIndex = __get-cacheStartIndex -CacheList $CacheDetails -CacheID $cache
                     Write-Verbose "The start index is $StartIndex"
-        
+
                     $Clustersize = $CacheDetails[$StartIndex + 3].Replace('Cluster size:','').TrimStart()
                     $properties = @{
                         ComputerName = $Computer
@@ -89,24 +89,24 @@ function Get-CacheDetails{
                         Capacity = $CacheDetails[$StartIndex + (5 +$Clustersize)].Replace('Capacity:','').TrimStart()
                         Count = $CacheDetails[$StartIndex + (6 + $Clustersize)].Replace('Count:','').TrimStart()
                     }
-            
+
                     $detailsObject = New-Object -TypeName PSObject -Property $properties
-            
+
                     Write-Verbose "validating $cache"
                     if((__ValidateCacheResults $detailsObject $cache)){Write-Output $detailsObject}
                 }
 
                 Remove-Variable -Name properties
                 Remove-Variable -Name CacheDetails
-            }     
+            }
         }
     }
     END{}
-   
+
 }
 
 <#
-    .SYNOPIS 
+    .SYNOPIS
     Returns the number of items for the cache specified
 
     .DESCRIPTION
@@ -119,7 +119,7 @@ function Get-CacheDetails{
     The Name of the server to retreive the cache count from
 #>
 function Get-CacheCount{
-    
+
     [CmdletBinding()]
     param(
         [string]$CacheID,
@@ -137,7 +137,7 @@ function Get-CacheCount{
 
     foreach($Computer in $ComputerName){
         Write-Verbose "Getting the cache count for $CacheID on $Computer"
-        
+
         if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
             $CacheCount = & getcachecount $CacheId /nologo
         }
@@ -154,7 +154,7 @@ function Get-CacheCount{
 
             $CacheCount = Invoke-Command @cimParameters
         }
-        
+
         $properties = @{
             ComputerName = $Computer
             CacheID = $CacheID
@@ -184,15 +184,8 @@ function Get-CacheCount{
         Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
 
 #>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-function Clear-Cache {
-=======
+
 Function Clear-Cache {
->>>>>>> Stashed changes
-=======
-Function Clear-Cache {
->>>>>>> Stashed changes
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [string[]]$ComputerName = $env:COMPUTERNAME,
@@ -206,7 +199,7 @@ Function Clear-Cache {
     BEGIN{
         $ClearCacheBlock = {
             param($CacheID)
-            
+
             & clearcache $CacheID /f
         }
     }
@@ -215,19 +208,19 @@ Function Clear-Cache {
         foreach ($Computer in $ComputerName) {
             if($PSCmdlet.ShouldProcess("$Computer $CacheID")){
                 if($Computer -eq $env:COMPUTERNAME){
-                    $results = & clearcache $CacheID /f    
+                    $results = & clearcache $CacheID /f
                 }
                 else{
                     $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
                 }
-            
+
                 if(-not($results -match 'Cache cleared')){
                      Write-Warning 'There was an issue clearing cache Message:'
                      Write-Warning "$results"
                 }
             }
-            
-        }    
+
+        }
     }
 
     END {}
@@ -237,11 +230,11 @@ Function Clear-Cache {
 <#
     .Synopsis
         Get Items in Cache
-    
+
     .Description
-        Gets Items in the Target Cache from the Target Server.  This uses the dumpcache cmdline utility and returns the 
+        Gets Items in the Target Cache from the Target Server.  This uses the dumpcache cmdline utility and returns the
         data as a PSObject
-        
+
     .Parameter Computer
         Target Server
 
@@ -252,17 +245,10 @@ Function Clear-Cache {
         Credential used to connect to the remote server
 
     .Example Get-CacheItem -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
-       
+
 #>
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-function Get-CacheItem {
-=======
+
 Function Get-CacheItem {
->>>>>>> Stashed changes
-=======
-Function Get-CacheItem {
->>>>>>> Stashed changes
     [CmdletBinding()]
     param(
         [string]$ComputerName,
@@ -282,7 +268,7 @@ Function Get-CacheItem {
 
     PROCESS {
         $results = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $GetCacheItemBlock -ArgumentList $CacheID
-       
+
         foreach($result in $results){
             if($result -notmatch 'Alachisoft' -and (-not[string]::IsNullOrEmpty($result)) -and $result -notmatch 'KeyCount' -and $result -notmatch 'Cache Count'){
                 $resultArray = $result -split '_'
@@ -293,29 +279,19 @@ Function Get-CacheItem {
                 }
                 Write-Output (New-Object -TypeName PSObject -Property $properties)
             }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            
-            
         }
-            if($Computer -eq $env:COMPUTERNAME){
-                $results = & clearcache $CacheID /f    
-            }
-            else{
-                $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
-            }
-            
-            if(-not($results -match 'Cache cleared')){
-                 Write-Warning 'There was an issue clearing cache Message:'
-                 Write-Warning "$results"
-            }
-        }    
-=======
+        
+        if($Computer -eq $env:COMPUTERNAME){
+            $results = & clearcache $CacheID /f
         }
->>>>>>> Stashed changes
-=======
+        else{
+            $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
         }
->>>>>>> Stashed changes
+
+        if(-not($results -match 'Cache cleared')){
+                Write-Warning 'There was an issue clearing cache Message:'
+                Write-Warning "$results"
+        }
     }
 
     END {}
@@ -329,7 +305,7 @@ function __get-CacheStartIndex{
     #>
     param($Cachelist,$CacheID)
     Write-Verbose "Getting the start Index for $CacheID"
-       
+
     #Find the line where cacheid matches the cache if passed
     $i = 0 #start of the array
     while($i -lt ($Cachelist.Length -1)){
@@ -345,7 +321,7 @@ function __validateCacheResults{
         [PSObject]$CacheResults,
         [string]$cache
     )
-        
+
     $isValid = $true
     do{
         if($CacheResults.CacheID -ne $cache){
@@ -362,12 +338,12 @@ function __validateCacheResults{
 
         if($CacheResults.Capacity -notmatch 'MB'){
             Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
-            $isValid =$false 
+            $isValid =$false
             break
         }
 
         if($CacheResults.Clustersize -notmatch '\d+'){
-            Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"   
+            Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"
             $isValid = $false
             break
         }
@@ -384,12 +360,3 @@ function __validateCacheResults{
 }
 
 Export-ModuleMember -Function Get-Cache*
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-Export-ModuleMember -Function Clear-Cache
-=======
-Export-ModuleMember -Function Clear-Cache
->>>>>>> Stashed changes
-=======
-Export-ModuleMember -Function Clear-Cache
->>>>>>> Stashed changes
