@@ -34,10 +34,11 @@
 function Get-CacheDetails{
     [CmdletBinding()]
     param(
-        [string[]]$ComputerName = $env:COMPUTERNAME,
+        [System.string[]]
+        $ComputerName = $env:COMPUTERNAME,
 
         [Parameter(Mandatory=$true)]
-        [string[]]$CacheID,
+        [System.string[]]$CacheID,
 
         [PSCredential]$Credential
     )
@@ -106,6 +107,67 @@ function Get-CacheDetails{
 }
 
 <#
+    .Synopsis
+        Restart a cache on a specific server
+
+    .Description
+        Performs the stopcache and then startcache actions on a specified cache and server
+
+    .Parameter ComputerName
+
+    .Parameter CacheID
+
+    .Parameter Credential
+
+    .Example
+        Restart-Cache -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
+        
+
+#>
+Function Restart-Cache {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [System.string[]]
+        $ComputerName,
+
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $CacheID,
+
+        [PSCredential]
+        $Credential
+    )
+
+    BEGIN{
+        $RestartBlock = {
+            param($CacheID)
+            $stop = & stopcache $CacheID
+            $start = & startcace $CacheID
+        }
+    }
+
+    PROCESS{
+        foreach($computer in $ComputerName){
+            $parameters = @{
+                ComputerName = $computer
+                ScriptBlock = $RestartBlock
+                ArgumentList = $CacheID
+            }
+
+            if($PSBoundParameters.ContainsKey('Credential')){
+                $properties.Add('Credential',$Credential)
+            }
+
+            Invoke-Command @parameters
+        }
+    }
+
+    END{}
+
+}
+
+<#
     .SYNOPIS
     Returns the number of items for the cache specified
 
@@ -122,11 +184,14 @@ function Get-CacheCount{
 
     [CmdletBinding()]
     param(
-        [string]$CacheID,
+        [string]
+        $CacheID,
 
-        [string[]]$ComputerName = $env:COMPUTERNAME,
+        [string[]]
+        $ComputerName = $env:COMPUTERNAME,
 
-        [PSCredential]$Credential
+        [PSCredential]
+        $Credential
     )
 
     $CacheCountBlock = {
@@ -188,12 +253,15 @@ function Get-CacheCount{
 Function Clear-Cache {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [string[]]$ComputerName = $env:COMPUTERNAME,
+        [string[]]
+        $ComputerName = $env:COMPUTERNAME,
 
         [Parameter(Mandatory=$true)]
-        [string]$CacheID,
+        [System.String]
+        $CacheID,
 
-        [PSCredential]$Credential
+        [PSCredential]
+        $Credential
     )
 
     BEGIN{
@@ -360,3 +428,4 @@ function __validateCacheResults{
 }
 
 Export-ModuleMember -Function Get-Cache*
+Export-ModuleMember -Function Restart-Cache
