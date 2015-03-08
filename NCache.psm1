@@ -18,7 +18,7 @@
         Credential of the user with permission to add data to the cache on the specified server
 
 #>
-function Add-CacheTestItems{
+function Add-CacheTestItem{
     [CmdletBinding()]
     param(
         [System.string[]]
@@ -32,7 +32,7 @@ function Add-CacheTestItems{
         $Count = 10,
 
         [PSCredential]
-        $Credential = (Get-Credential)
+        $Credential
     )
 
     BEGIN{
@@ -43,7 +43,13 @@ function Add-CacheTestItems{
         }
     }
     PROCESS{
-        $result = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $AddTestData -ArgumentList $CacheID, $Count
+        foreach($Computer in $ComputerName){
+            if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
+                __addtestdata -CacheID $CacheID -Count $Count #& addtestdata $CacheID /c $Count /nologo    
+            }else{
+                Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $AddTestData -ArgumentList $CacheID, $Count | Out-Null
+            }
+        }
     }
     END{}
 }
@@ -489,8 +495,19 @@ function __validateCacheResults{
     return $isValid
 }
 
+Function __addtestdata {
+    param(
+        [System.String]
+        $CacheID,
+
+        [System.Int16]
+        $Count
+    )
+    & addtestdata $CacheID /c $Count | Out-Null
+}
+
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Restart-Cache
 Export-ModuleMember -Function Clear-Cache
-Export-ModuleMember -Function Add-CacheTestItems
+Export-ModuleMember -Function Add-CacheTestItem
 

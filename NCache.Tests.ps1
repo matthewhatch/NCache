@@ -381,3 +381,67 @@ Describe 'Restart-Cache' {
     }
     
 }
+
+Describe 'Add-CacheTestItem'{
+    
+    Mock -CommandName Invoke-Command -ModuleName NCache {
+        Write-Output $true
+    }
+
+    Mock -CommandName __addtestdata -ModuleName NCache {
+        Write-Output $true
+    }
+
+    Context 'When passing in one computername'{
+        It 'should call Invoke-Command 1 time' {
+            
+            Add-CacheTestItem -ComputerName 'Server0001' -CacheID 'Cache0001' -Credential $cred
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1 
+
+        }
+    }
+
+    Context 'When passing in 2 items to computername' {
+        It 'Should call Invoke Command more than once' {
+            Add-CacheTestItem -ComputerName server0001,server0002 -CacheID Cache0001 -Credential $Cred
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 2
+        }
+    }
+
+    Context 'When no argument is passed to ComputerName' {
+        Add-CacheTestItem -CacheID Cache0001
+        It 'Should call Invoke Command 0 times' { 
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0
+        }
+
+        It 'Should call __addtestdata 1 time' {
+            Assert-MockCalled -CommandName __addtestdata -ModuleName NCache -Exactly 1
+        }
+    }
+
+    Context 'When $env:Computername is passed to ComputerName' {
+        Add-CacheTestItem -CacheID Cache0001 -ComputerName $env:COMPUTERNAME
+        
+        It 'Should call Invoke-Command 0 times' {
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0 
+        }
+
+        It 'Should call __addtestdata 1 time' {
+            Assert-MockCalled -CommandName __addtestdata -ModuleName NCache -Exactly 1
+        }
+    }
+
+    Context 'When $nv:ComputerName and a remote machine are passed to ComputerName parameter'{
+        Add-CacheTestItem -ComputerName $env:COMPUTERNAME,'Server0001' -CacheID Cache0001 -Credential $Cred
+
+        It 'Should call Invoke-Command 1 time' {
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
+        }
+
+        It 'Should call __addtestdata 1 time' {
+            Assert-MockCalled -CommandName __addtestdata -ModuleName NCache -Exactly 1
+        }
+
+    }
+
+}
