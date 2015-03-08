@@ -318,7 +318,7 @@ Describe 'Clear-Cache' {
     }
 }
 
-Describe 'Get-CacheList' {
+Describe 'Get-CacheItem' {
     Mock -CommandName Invoke-Command -ModuleName NCache {
         $dumpcache = @"
 GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
@@ -346,12 +346,8 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
 
     $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
 
-    $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
-
-    $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
-
     It 'should call Invoke-Command 1 time' {
-        Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
+        Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Times 1
     }
 
     It 'Should return an object with with a Key GetProspectClientOrgIds' {
@@ -365,10 +361,23 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
 
 Describe 'Restart-Cache' {
     Context 'Parameters' {
+        $secpasswd = ConvertTo-SecureString 'PlainTextPassword' -AsPlainText -Force
+        $Cred = New-Object -TypeName PSCredential('username',$secpasswd)
+        Mock -CommandName Invoke-Command -ModuleName NCache {
+            return $true
+        }
+        
         $parameters = (Get-Command Restart-Cache).Parameters
+        
         It 'Should accept ComputerName as a parameter' {
             $parameters.ContainsKey('ComputerName') | Should Be $true    
         }
+
+        It 'Should Invoke remote command' {
+            Restart-Cache -ComputerName 'Server001' -CacheID 'Cache001' -Credential $Cred
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
+        }
+
     }
     
 }

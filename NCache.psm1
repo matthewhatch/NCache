@@ -1,5 +1,54 @@
 ﻿<#
     .Synopsis
+        Adds Test data to the specified cache
+
+    .Description
+        Adds Test data to the specified cache on a remote server.
+
+    .Parameter ComputerName
+        Name of the remote system to add cache items to
+
+    .Parameter CacheID
+        Name of the cache to add the test data to
+
+    .Parameter Count
+        The number of test items to add to the cache 
+    
+    .Parameter Credential
+        Credential of the user with permission to add data to the cache on the specified server
+
+#>
+function Add-CacheTestItems{
+    [CmdletBinding()]
+    param(
+        [System.string[]]
+        $ComputerName = ($env:COMPUTERNAME),
+
+        [Parameter(Mandatory=$true)]
+        [System.string]
+        $CacheID,
+
+        [System.Int16]
+        $Count = 10,
+
+        [PSCredential]
+        $Credential = (Get-Credential)
+    )
+
+    BEGIN{
+        $AddTestData = {
+            param($CacheID,$Count)
+
+            & addtestdata $CacheID /c $Count /nologo
+        }
+    }
+    PROCESS{
+        $result = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $AddTestData -ArgumentList $CacheID, $Count
+    }
+    END{}
+}
+<#
+    .Synopsis
     Returns the detailed information about ncache cache
 
     .Description
@@ -143,7 +192,7 @@ Function Restart-Cache {
         $RestartBlock = {
             param($CacheID)
             $stop = & stopcache $CacheID
-            $start = & startcace $CacheID
+            $start = & startcache $CacheID
         }
     }
 
@@ -156,10 +205,16 @@ Function Restart-Cache {
             }
 
             if($PSBoundParameters.ContainsKey('Credential')){
-                $properties.Add('Credential',$Credential)
+                $parameters.Add('Credential',$Credential)
             }
 
-            Invoke-Command @parameters
+            try{
+                Invoke-Command @parameters
+            }
+            catch{
+                Write-Warning 'There was an issue restarting the cache, here are the parameters you sent'
+                Write-Warning $parameters
+            }
         }
     }
 
@@ -279,11 +334,21 @@ Function Clear-Cache {
                     $results = & clearcache $CacheID /f
                 }
                 else{
-                    $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+                    $cimParameters = @{
+                        ComputerName = $Computer
+                        ScriptBlock = $ClearCacheBlock
+                        ArgumentList = $CacheID
+                    }
+                    if($PSBoundParameters.ContainsKey('Credential')){
+                        $cimParameters.Add('Credential',$Credential)
+                    }
+
+                    $results = Invoke-Command @cimParameters #-ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
                 }
 
                 if(-not($results -match 'Cache cleared')){
-                     Write-Warning 'There was an issue clearing cache Message:'
+                     Write-Warning 'There was an issue clearing cache Message:\
+                     '
                      Write-Warning "$results"
                 }
             }
@@ -353,13 +418,10 @@ Function Get-CacheItem {
             $results = & clearcache $CacheID /f
         }
         else{
-            $results = Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+            $results = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $GetCacheItemBlock -ArgumentList $CacheID
         }
 
-        if(-not($results -match 'Cache cleared')){
-                Write-Warning 'There was an issue clearing cache Message:'
-                Write-Warning "$results"
-        }
+       Write-Output $results
     }
 
     END {}
@@ -429,3 +491,6 @@ function __validateCacheResults{
 
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Restart-Cache
+Export-ModuleMember -Function Clear-Cache
+Export-ModuleMember -Function Add-CacheTestItems
+
