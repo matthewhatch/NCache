@@ -1,5 +1,110 @@
 ﻿<#
     .Synopsis
+        Adds a new cache to an NCache Server
+    
+    .Parameter ComputerName
+        Name of Server the cache should be added, this can be an arrat of Computers
+
+    .Parameter ClusterMember
+        Name of the other servers in the cluster
+
+    .Parameter CacheID
+        Name of the new cache
+
+    .Parameter CacheSize
+        Size in MB of the Cache
+
+    .Parameter TopologyName
+         Specifies the topology in case of clustered cache. Possible values are
+            -local-cache
+            -mirror
+            -replicated (default)
+            -partitioned
+            -partitioned-replicas-server
+
+    .Parameter ClusterPort
+        Specifies the port of the server, at which server listens. Default is 7800
+
+#>
+function New-Cache{
+    [CmdletBinding()]
+    param(
+        [System.String[]]
+        $ComputerName,
+
+        [System.String]
+        $ClusterMember,
+        
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $CacheID,
+
+        [PSCredential]
+        $Credential,
+        
+        [System.Int16]
+        $Port,
+        
+        [System.Int16]
+        $CacheSize,
+
+        [ValidateSet('local-cache','mirror','replicated','partitioned','partitioned-replicas-server')]
+        [System.String]
+        $TopologyName,
+
+        [Parameter(Mandatory=$true)]
+        [System.Int16]
+        $ClusterPort
+
+    )
+
+    BEGIN{
+        $NewCacheBlock = {
+            param($CacheID, $ClusterPort, $TopologyName)
+            & createcache $CacheID /c $ClusterPort /t $TopologyName
+            & startcache $CacheID
+        }
+
+        $AddNodeBlock = {
+            param($CacheID,$ComputerName,$ClusterMember)
+            & addnode $CacheID /e $ComputerName /n $ClusterMember
+        }
+
+    }
+
+    PROCESS{
+
+        try{
+            Write-Verbose "Making remote call to $ComputerName to add $CacheID"
+            Invoke-Command  -ComputerName $ComputerName -Credential $Credential -ScriptBlock $NewCacheBlock -ArgumentList $CacheID,$ClusterPort,$TopologyName | Out-Null
+            Write-Verbose "$CacheID has been added to $ComputerName"
+        }
+        catch{
+            Write-Warning "There was an issue adding $CacheID in $ComputerName"
+        }
+
+        try{
+            if($PSBoundParameters.ContainsKey('ClusterMember')){
+                Write-Verbose "Making Remote call to $ComputerName to Add $ClusterMember to $CacheID"
+                Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $AddNodeBlock -ArgumentList $CacheID,$ComputerName,$ClusterMember | Out-Null
+                Write-Verbose "$ClusterMember has been added to $CacheID"   
+            }
+        }
+        catch{
+            Write-Warning "There was an issue adding $ClusterMember to $CacheID"
+        }
+        Get-CacheDetails -ComputerName $ComputerName -Credential $Credential -CacheID $CacheID
+    }
+
+    END{
+        Remove-Variable -Name AddNodeBlock
+        Remove-Variable -Name NewCacheBlock
+    }
+}
+
+
+<#
+    .Synopsis
         Adds Test data to the specified cache
 
     .Description
@@ -19,7 +124,7 @@
 
 #>
 function Add-CacheTestItem{
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [System.string[]]
         $ComputerName = ($env:COMPUTERNAME),
@@ -45,9 +150,21 @@ function Add-CacheTestItem{
     PROCESS{
         foreach($Computer in $ComputerName){
             if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
-                __addtestdata -CacheID $CacheID -Count $Count #& addtestdata $CacheID /c $Count /nologo    
+                try{__addtestdata -CacheID $CacheID -Count $Count}
+                catch{Write-Warning "There was an issue adding test data to $Computer"}   
             }else{
-                Invoke-Command -ComputerName $Computer -Credential $Credential -ScriptBlock $AddTestData -ArgumentList $CacheID, $Count | Out-Null
+                $parameters = @{
+                    ComputerName = $Computer
+                    ScriptBlock = $AddTestData
+                    ArgumentList = $CacheID,$Count
+                }
+                
+                if($PSBoundParameters.ContainsKey('Credential')){
+                    $parameters.Add('Credential',$Credential)    
+                }
+                
+                try{Invoke-Command @parameters | Out-Null}
+                catch{Write-Warning "There was an issue adding test data to $Computer"}
             }
         }
     }
@@ -93,9 +210,11 @@ function Get-CacheDetails{
         $ComputerName = $env:COMPUTERNAME,
 
         [Parameter(Mandatory=$true)]
-        [System.string[]]$CacheID,
+        [System.string[]]
+        $CacheID,
 
-        [PSCredential]$Credential
+        [PSCredential]
+        $Credential
     )
 
     BEGIN{
@@ -180,7 +299,7 @@ function Get-CacheDetails{
 
 #>
 Function Restart-Cache {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [Parameter(Mandatory=$true)]
         [System.string[]]
@@ -390,12 +509,15 @@ Function Clear-Cache {
 Function Get-CacheItem {
     [CmdletBinding()]
     param(
-        [string]$ComputerName,
+        [System.string]
+        $ComputerName,
 
         [Parameter(Mandatory=$true)]
-        [string]$CacheID,
+        [System.string]
+        $CacheID,
 
-        [PSCredential]$Credential = (Get-Credential)
+        [PSCredential]
+        $Credential
     )
 
     BEGIN{
@@ -406,7 +528,17 @@ Function Get-CacheItem {
     }
 
     PROCESS {
-        $results = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $GetCacheItemBlock -ArgumentList $CacheID
+        $InvokeParams = @{
+            ComputerName = $ComputerName
+            ScriptBlock = $GetCacheItemBlock
+            ArgumentList = $CacheID
+        }
+        
+        if($PSBoundParameters.ContainsKey('Credential')){
+            $InvokeParams.Add('Credential',$Credential);
+        }
+
+        $results = Invoke-Command @InvokeParams
 
         foreach($result in $results){
             if($result -notmatch 'Alachisoft' -and (-not[string]::IsNullOrEmpty($result)) -and $result -notmatch 'KeyCount' -and $result -notmatch 'Cache Count'){
@@ -420,14 +552,8 @@ Function Get-CacheItem {
             }
         }
         
-        if($Computer -eq $env:COMPUTERNAME){
-            $results = & clearcache $CacheID /f
-        }
-        else{
-            $results = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $GetCacheItemBlock -ArgumentList $CacheID
-        }
 
-       Write-Output $results
+       #Write-Output $results
     }
 
     END {}
@@ -510,4 +636,4 @@ Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Restart-Cache
 Export-ModuleMember -Function Clear-Cache
 Export-ModuleMember -Function Add-CacheTestItem
-
+Export-ModuleMember -Function New-Cache
