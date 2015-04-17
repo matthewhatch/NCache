@@ -1,4 +1,6 @@
-﻿<#
+﻿#REQUIRES -Version 2.0
+
+<#
     .Synopsis
         Adds a new cache to an NCache Server
     
@@ -41,6 +43,9 @@ function New-Cache{
 
         [PSCredential]
         $Credential,
+
+        [System.String]
+        $EndPoint,
         
         [System.Int16]
         $Port,
@@ -73,10 +78,19 @@ function New-Cache{
     }
 
     PROCESS{
+        
+        $parameters = @{
+            ComputerName = $ComputerName
+            ScriptBlock = $NewCacheBlock
+            ArgumentList = @($CacheID,$ClusterPort,$TopologyName)
+        }
+
+        if($PSBoundParameters.ContainsKey('Credential')){$parameters.Add('Credential',$Credential)}
+        if($PSBoundParameters.ContainsKey('EndPoint')){$parameters.Add('ConfigurationName',$EndPoint)}
 
         try{
             Write-Verbose "Making remote call to $ComputerName to add $CacheID"
-            Invoke-Command  -ComputerName $ComputerName -Credential $Credential -ScriptBlock $NewCacheBlock -ArgumentList $CacheID,$ClusterPort,$TopologyName | Out-Null
+            Invoke-Command  @parameters | Out-Null
             Write-Verbose "$CacheID has been added to $ComputerName"
         }
         catch{
@@ -86,7 +100,9 @@ function New-Cache{
         try{
             if($PSBoundParameters.ContainsKey('ClusterMember')){
                 Write-Verbose "Making Remote call to $ComputerName to Add $ClusterMember to $CacheID"
-                Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $AddNodeBlock -ArgumentList $CacheID,$ComputerName,$ClusterMember | Out-Null
+                $parameters.ScriptBlock = $AddNodeBlock
+                $parameters.ArgumentList = @($CacheID,$ComputerName,$ClusterMember)
+                Invoke-Command @parameters | Out-Null
                 Write-Verbose "$ClusterMember has been added to $CacheID"   
             }
         }
@@ -136,6 +152,9 @@ function Add-CacheTestItem{
         [System.Int16]
         $Count = 10,
 
+        [System.String]
+        $EndPoint,
+
         [PSCredential]
         $Credential
     )
@@ -161,6 +180,10 @@ function Add-CacheTestItem{
                 
                 if($PSBoundParameters.ContainsKey('Credential')){
                     $parameters.Add('Credential',$Credential)    
+                }
+
+                if($PSBoundParameters.ContainsKey('EndPoint')){
+                    $parameters.Add('ConfigurationName',$EndPoint)
                 }
                 
                 try{Invoke-Command @parameters | Out-Null}
@@ -193,6 +216,12 @@ function Add-CacheTestItem{
     .Parameter CacheID
     Name of the Cache on the target machine
 
+    .Parameter Endpoint
+    PS Remoting Endpoint/ConfigurationName that is used when running commands on the remote server
+    
+    .Parameter Credential
+    Credential used to connect to the remote server.  By default the cmdlet will run under your logon credentials
+
     .Example
     Get-CacheDetails -ComputerName Server01 -CacheID Cache00001
 
@@ -201,6 +230,9 @@ function Add-CacheTestItem{
 
     .Example
     Get-CacheDeatils -ComputerName Server01 -CacheID Cache0001, Cache0002
+
+    .Example
+    Get-CacheDetails -ComputerName Server01 -CacheID Cache0001 -EndPoint ContrainedEndPoint00001
 
 #>
 function Get-CacheDetails{
@@ -213,14 +245,16 @@ function Get-CacheDetails{
         [System.string[]]
         $CacheID,
 
+        [System.string]
+        $Endpoint,
+
         [PSCredential]
         $Credential
     )
 
     BEGIN{
         $CacheDetailsBlock = {
-            $results = & listcaches /a
-            Write-Output $results
+            & listcaches /a
         }
 
     }
@@ -228,7 +262,7 @@ function Get-CacheDetails{
         foreach($Computer in $ComputerName){
 
             if($Computer -eq $env:COMPUTERNAME -or $Computer -eq '.'){
-                try{$CacheDetails = Get-CacheList }#& listcaches /a}
+                try{$CacheDetails = Get-CacheList }
                 catch{ Write-Warning "there was an issue retrieving $CacheID Details from $Computer"}
             }
             else{
@@ -240,6 +274,10 @@ function Get-CacheDetails{
 
                     if($PSBoundParameters.ContainsKey('Credential')){
                         $cimParameters.Add('Credential',$Credential)
+                    }
+
+                    if($PSBoundParameters.ContainsKey('Endpoint')){
+                        $cimParameters.Add('ConfigurationName',$Endpoint)
                     }
 
                     $CacheDetails = Invoke-Command @cimParameters -ErrorAction Stop
@@ -293,6 +331,8 @@ function Get-CacheDetails{
 
     .Parameter Credential
 
+    .Parameter Endpoint
+
     .Example
         Restart-Cache -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
         
@@ -310,14 +350,24 @@ Function Restart-Cache {
         $CacheID,
 
         [PSCredential]
-        $Credential
+        $Credential,
+
+        [System.String]
+        $Endpoint
     )
 
     BEGIN{
-        $RestartBlock = {
+        #created one block for stop and one for start, running the command in contrained endpoint doesn't allow 
+        #for mutiple lines in a script block, Get the errror 'ScriptsNotAllowed'
+        
+        $StopBlock = {
             param($CacheID)
-            $stop = & stopcache $CacheID
-            $start = & startcache $CacheID
+            & stopcache $CacheID | Out-Null
+        }
+
+        $StartBlock = {
+            param($CacheID)
+            & startcache $CacheID | Out-Null
         }
     }
 
@@ -325,7 +375,6 @@ Function Restart-Cache {
         foreach($computer in $ComputerName){
             $parameters = @{
                 ComputerName = $computer
-                ScriptBlock = $RestartBlock
                 ArgumentList = $CacheID
             }
 
@@ -333,8 +382,13 @@ Function Restart-Cache {
                 $parameters.Add('Credential',$Credential)
             }
 
+            if($PSBoundParameters.ContainsKey('Endpoint')){
+                $parameters.Add('ConfigurationName',$Endpoint)
+            }
+
             try{
-                Invoke-Command @parameters
+                Invoke-Command @parameters -ScriptBlock $StopBlock
+                Invoke-Command @parameters -ScriptBlock $StartBlock
             }
             catch{
                 Write-Warning 'There was an issue restarting the cache, here are the parameters you sent'
@@ -359,6 +413,9 @@ Function Restart-Cache {
 
     .PARAMETER ComputerName
     The Name of the server to retreive the cache count from
+
+    .Parameter Endpoint
+    The name of the Powershell Endpoint/Configuration used when connecting to remote server
 #>
 function Get-CacheCount{
 
@@ -371,13 +428,15 @@ function Get-CacheCount{
         $ComputerName = $env:COMPUTERNAME,
 
         [PSCredential]
-        $Credential
+        $Credential,
+
+        [System.String]
+        $Endpoint
     )
 
     $CacheCountBlock = {
         param ($CacheID)
-        $results = & getcachecount $CacheId /nologo
-        Write-Output $results
+        & getcachecount $CacheId /nologo
     }
 
     foreach($Computer in $ComputerName){
@@ -395,6 +454,10 @@ function Get-CacheCount{
 
             if($PSBoundParameters.ContainsKey('Credential')){
                 $cimParameters.Add('Credential',$Credential)
+            }
+
+            if($PSBoundParameters.ContainsKey('Endpoint')){
+                $cimParameters.Add('ConfigurationName',$Endpoint)
             }
 
             $CacheCount = Invoke-Command @cimParameters
@@ -424,6 +487,9 @@ function Get-CacheCount{
     .Parameter CacheID
         Name of the target Cache
 
+    .Parameter EndPoint
+        Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
+
     .Example
         $MyCreds = Get-Credential
         Clear-Cache -ComputerName Server01 -CacheID Cache01 -Credentials $MyCreds
@@ -441,7 +507,10 @@ Function Clear-Cache {
         $CacheID,
 
         [PSCredential]
-        $Credential
+        $Credential,
+
+        [System.String]
+        $Endpoint
     )
 
     BEGIN{
@@ -459,16 +528,22 @@ Function Clear-Cache {
                     $results = & clearcache $CacheID /f
                 }
                 else{
+                    
                     $cimParameters = @{
                         ComputerName = $Computer
                         ScriptBlock = $ClearCacheBlock
                         ArgumentList = $CacheID
                     }
+                    
                     if($PSBoundParameters.ContainsKey('Credential')){
                         $cimParameters.Add('Credential',$Credential)
                     }
 
-                    $results = Invoke-Command @cimParameters #-ComputerName $Computer -Credential $Credential -ScriptBlock $ClearCacheBlock -ArgumentList $CacheID
+                    if($PSBoundParameters.ContainsKey('Endpoint')){
+                        $cimParameters.Add('ConfigurationName',$Endpoint)
+                    }
+
+                    $results = Invoke-Command @cimParameters
                 }
 
                 if(-not($results -match 'Cache cleared')){
@@ -502,6 +577,9 @@ Function Clear-Cache {
     .Parameter Credential
         Credential used to connect to the remote server
 
+    .Parameter Endpoint
+        Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
+
     .Example Get-CacheItem -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential)
 
 #>
@@ -517,7 +595,10 @@ Function Get-CacheItem {
         $CacheID,
 
         [PSCredential]
-        $Credential
+        $Credential,
+
+        [System.String]
+        $Endpoint
     )
 
     BEGIN{
@@ -535,7 +616,11 @@ Function Get-CacheItem {
         }
         
         if($PSBoundParameters.ContainsKey('Credential')){
-            $InvokeParams.Add('Credential',$Credential);
+            $InvokeParams.Add('Credential',$Credential)
+        }
+
+        if($PSBoundParameters.ContainsKey('Endpoint')){
+            $InvokeParams.Add('ConfigurationName',$Endpoint)
         }
 
         $results = Invoke-Command @InvokeParams
@@ -551,9 +636,6 @@ Function Get-CacheItem {
                 Write-Output (New-Object -TypeName PSObject -Property $properties)
             }
         }
-        
-
-       #Write-Output $results
     }
 
     END {}
@@ -631,6 +713,17 @@ Function __addtestdata {
     )
     & addtestdata $CacheID /c $Count | Out-Null
 }
+
+<#
+    .Synopsis
+        Function is included to help with testing using Pester Mocks
+    
+    .Describes
+        This wraps the external command listcaches in order to make testing easier
+        with Pester. In order to Mock calls to listcaches it needs to be wrapped in a 
+        function.
+#>
+Function Get-CacheList{& listcaches /a}
 
 Export-ModuleMember -Function Get-Cache*
 Export-ModuleMember -Function Restart-Cache

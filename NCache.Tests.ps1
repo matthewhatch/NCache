@@ -135,7 +135,7 @@ Status:         Stopped
             $localCache.ComputerName | Should Be $env:Computername
         }
 
-                It 'returns an object with property CacheID' {
+        It 'returns an object with property CacheID' {
             (Get-Member -InputObject $localCache).Name -contains 'CacheID' | Should Be $true
         }
 
@@ -239,9 +239,11 @@ Status:         Stopped
         It 'accepts CacheID as a parameter' {
             $params.ContainsKey('CacheID') | Should Be $true
         }
+
+        It 'accepts EndPoint as a parameter' {
+            $params.ContainsKey('EndPoint') | Should Be $true
+        }
     }
-
-
 }
 
 Describe 'Get-CacheCount' {
@@ -264,6 +266,10 @@ Cache item count:10
 
     It 'Accepts Credential as a parameter'{
         $params.ContainsKey('Credential') | Should Be $true
+    }
+
+    It 'Accepts Endpoint as a parameter' {
+        $params.ContainsKey('Endpoint') | Should Be $true
     }
 
     It 'returns an object with property ComputerName' {
@@ -315,6 +321,10 @@ Describe 'Clear-Cache' {
             $params.ContainsKey('Credential') | Should Be $true
         }
 
+        It 'Should accept Endpoint as a parameter' {
+            $params.ContainsKey('EndPoint') | Should Be $true
+        }
+
     }
 }
 
@@ -331,16 +341,16 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
             $params.ContainsKey('ComputerName') | Should Be $true
         }
 
-        It 'should accept ComputerName as a parameter' {
-            $params.ContainsKey('ComputerName') | Should Be $true
-        }
-
         It 'should accept CacheID as a parameter' {
             $params.ContainsKey('CacheID') | Should Be $true
         }
 
         It 'should accept Credential as a parameter' {
             $params.ContainsKey('Credential') | Should Be $true
+        }
+
+        It 'should accept Endpoint as a parameter' {
+            $params.ContainsKey('EndPoint') | Should Be $true
         }
     }
 
@@ -366,24 +376,28 @@ Describe 'Restart-Cache' {
         Mock -CommandName Invoke-Command -ModuleName NCache {
             return $true
         }
-        
+
         $parameters = (Get-Command Restart-Cache).Parameters
-        
+
         It 'Should accept ComputerName as a parameter' {
-            $parameters.ContainsKey('ComputerName') | Should Be $true    
+            $parameters.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept Endpoint as a parameter' {
+            $parameters.ContainsKey('Endpoint') | Should Be $true
         }
 
         It 'Should Invoke remote command' {
             Restart-Cache -ComputerName 'Server001' -CacheID 'Cache001' -Credential $Cred
-            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 2
         }
 
     }
-    
+
 }
 
 Describe 'Add-CacheTestItem'{
-    
+
     Mock -CommandName Invoke-Command -ModuleName NCache {
         Write-Output $true
     }
@@ -392,11 +406,33 @@ Describe 'Add-CacheTestItem'{
         Write-Output $true
     }
 
+    Context 'Parameters' {
+        $parameters = (Get-Command Add-CacheTestItem).Parameters
+
+        It 'Should accept Computername as a parameter'{
+            $parameters.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter'{
+            $parameters.ContainsKey('CacheID') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter'{
+            $parameters.ContainsKey('Credential') | Should Be $true
+        }
+
+        It 'Should accept EndPoint as a parameter'{
+            $parameters.ContainsKey('EndPoint') | Should Be $true
+        }
+
+    }
+
+    
     Context 'When passing in one computername'{
         It 'should call Invoke-Command 1 time' {
-            
+
             Add-CacheTestItem -ComputerName 'Server0001' -CacheID 'Cache0001' -Credential $cred
-            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1 
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
 
         }
     }
@@ -410,7 +446,7 @@ Describe 'Add-CacheTestItem'{
 
     Context 'When no argument is passed to ComputerName' {
         Add-CacheTestItem -CacheID Cache0001
-        It 'Should call Invoke Command 0 times' { 
+        It 'Should call Invoke Command 0 times' {
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0
         }
 
@@ -421,9 +457,9 @@ Describe 'Add-CacheTestItem'{
 
     Context 'When $env:Computername is passed to ComputerName' {
         Add-CacheTestItem -CacheID Cache0001 -ComputerName $env:COMPUTERNAME
-        
+
         It 'Should call Invoke-Command 0 times' {
-            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0 
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0
         }
 
         It 'Should call __addtestdata 1 time' {
@@ -444,4 +480,44 @@ Describe 'Add-CacheTestItem'{
 
     }
 
+}
+
+Describe 'New-Cache' {
+      Mock -ModuleName NCache -CommandName Invoke-Command {
+        'Cache added'
+      }
+
+      Mock -ModuleName NCache -CommandName Get-CacheDetails {
+        'Cache details'
+      }
+
+      It 'Should Create new Cache instance'{
+          New-Cache -ComputerName 'Server0001' -Credential $Cred -CacheID 'TestCache0001' -ClusterPort  9999
+          Assert-MockCalled -ModuleName NCache -CommandName Invoke-Command -Exactly 1
+      }
+
+      Context 'Parameters' {
+        $parameters = (Get-Command New-Cache).Parameters
+
+        It 'Should accept Computername as a parameter'{
+            $parameters.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter'{
+            $parameters.ContainsKey('CacheID') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter'{
+            $parameters.ContainsKey('Credential') | Should Be $true
+        }
+
+        It 'Should accept EndPoint as a parameter'{
+            $parameters.ContainsKey('EndPoint') | Should Be $true
+        }
+
+         It 'Should accept Port as a parameter'{
+            $parameters.ContainsKey('Port') | Should Be $true
+        }
+
+    }
 }
