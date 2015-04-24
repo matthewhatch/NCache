@@ -336,7 +336,7 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
     Write-Output $dumpcache
     }
     Context 'Parameters' {
-        $params = (Get-Command Get-CacheItem).Parameters
+        $params = (Get-Command Get-TestCacheItem).Parameters
         It 'should accept ComputerName as a parameter' {
             $params.ContainsKey('ComputerName') | Should Be $true
         }
@@ -354,7 +354,7 @@ GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
         }
     }
 
-    $CacheItems = Get-CacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
+    $CacheItems = Get-TestCacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
 
     It 'should call Invoke-Command 1 time' {
         Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Times 1
@@ -377,7 +377,7 @@ Describe 'Restart-Cache' {
             return $true
         }
 
-        $parameters = (Get-Command Restart-Cache).Parameters
+        $parameters = (Get-Command Restart-TestCache).Parameters
 
         It 'Should accept ComputerName as a parameter' {
             $parameters.ContainsKey('ComputerName') | Should Be $true
@@ -388,7 +388,7 @@ Describe 'Restart-Cache' {
         }
 
         It 'Should Invoke remote command' {
-            Restart-Cache -ComputerName 'Server001' -CacheID 'Cache001' -Credential $Cred
+            Restart-TestCache -ComputerName 'Server001' -CacheID 'Cache001' -Credential $Cred
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 2
         }
 
@@ -407,7 +407,7 @@ Describe 'Add-CacheTestItem'{
     }
 
     Context 'Parameters' {
-        $parameters = (Get-Command Add-CacheTestItem).Parameters
+        $parameters = (Get-Command Add-TestCacheTestItem).Parameters
 
         It 'Should accept Computername as a parameter'{
             $parameters.ContainsKey('ComputerName') | Should Be $true
@@ -431,7 +431,7 @@ Describe 'Add-CacheTestItem'{
     Context 'When passing in one computername'{
         It 'should call Invoke-Command 1 time' {
 
-            Add-CacheTestItem -ComputerName 'Server0001' -CacheID 'Cache0001' -Credential $cred
+            Add-TestCacheTestItem -ComputerName 'Server0001' -CacheID 'Cache0001' -Credential $cred
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
 
         }
@@ -439,13 +439,13 @@ Describe 'Add-CacheTestItem'{
 
     Context 'When passing in 2 items to computername' {
         It 'Should call Invoke Command more than once' {
-            Add-CacheTestItem -ComputerName server0001,server0002 -CacheID Cache0001 -Credential $Cred
+            Add-TestCacheTestItem -ComputerName server0001,server0002 -CacheID Cache0001 -Credential $Cred
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 2
         }
     }
 
     Context 'When no argument is passed to ComputerName' {
-        Add-CacheTestItem -CacheID Cache0001
+        Add-TestCacheTestItem -CacheID Cache0001
         It 'Should call Invoke Command 0 times' {
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0
         }
@@ -456,7 +456,7 @@ Describe 'Add-CacheTestItem'{
     }
 
     Context 'When $env:Computername is passed to ComputerName' {
-        Add-CacheTestItem -CacheID Cache0001 -ComputerName $env:COMPUTERNAME
+        Add-TestCacheTestItem -CacheID Cache0001 -ComputerName $env:COMPUTERNAME
 
         It 'Should call Invoke-Command 0 times' {
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 0
@@ -468,7 +468,7 @@ Describe 'Add-CacheTestItem'{
     }
 
     Context 'When $nv:ComputerName and a remote machine are passed to ComputerName parameter'{
-        Add-CacheTestItem -ComputerName $env:COMPUTERNAME,'Server0001' -CacheID Cache0001 -Credential $Cred
+        Add-TestCacheTestItem -ComputerName $env:COMPUTERNAME,'Server0001' -CacheID Cache0001 -Credential $Cred
 
         It 'Should call Invoke-Command 1 time' {
             Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Exactly 1
@@ -492,12 +492,12 @@ Describe 'New-Cache' {
       }
 
       It 'Should Create new Cache instance'{
-          New-Cache -ComputerName 'Server0001' -Credential $Cred -CacheID 'TestCache0001' -ClusterPort  9999
+          New-TestCache -ComputerName 'Server0001' -Credential $Cred -CacheID 'TestCache0001' -ClusterPort  9999
           Assert-MockCalled -ModuleName NCache -CommandName Invoke-Command -Exactly 1
       }
 
       Context 'Parameters' {
-        $parameters = (Get-Command New-Cache).Parameters
+        $parameters = (Get-Command New-TestCache).Parameters
 
         It 'Should accept Computername as a parameter'{
             $parameters.ContainsKey('ComputerName') | Should Be $true
