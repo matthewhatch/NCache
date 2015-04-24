@@ -1,3 +1,6 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/b1vgvd1vfj91wbhq?svg=true)](https://ci.appveyor.com/project/matthewhatch/ncache)
+
+
 # NCache
 NCache Powershell Module -- Used to get data from Alachisoft NCache
 
