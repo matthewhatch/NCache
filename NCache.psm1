@@ -32,7 +32,7 @@ function New-Cache{
     [CmdletBinding()]
     param(
         [System.String[]]
-        $ComputerName,
+        $ComputerName = $env:COMPUTERNAME,
 
         [System.String]
         $ClusterMember,
