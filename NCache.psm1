@@ -27,6 +27,9 @@
     .Parameter ClusterPort
         Specifies the port of the server, at which server listens. Default is 7800
 
+    .Notes
+        Creates a new cache on a remote machine.  This was added to help fully automate the build of the CTI environment
+
 #>
 function New-Cache{
     [CmdletBinding()]
