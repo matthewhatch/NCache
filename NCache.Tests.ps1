@@ -521,3 +521,13 @@ Describe 'New-Cache' {
 
     }
 }
+
+Describe 'Get-CacheDestails Errors'{
+    Mock -CommandName Invoke-Command -ModuleName NCache {
+        'Failing results'
+    }
+    
+    It 'Should throw terminating Error' {
+        {Get-CacheDetails -ComputerName 'Server0001' -CacheID 'Cache0001'} | Should Throw 
+    }
+}
