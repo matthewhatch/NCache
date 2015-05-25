@@ -283,7 +283,11 @@ function Get-CacheDetails{
                     $CacheDetails = Invoke-Command @cimParameters -ErrorAction Stop
                 }
                 catch{
-                    Write-Warning "there was an issue retrieving $CacheID Details from $Computer"
+                    #Write-Warning "there was an issue retrieving $CacheID Details from $Computer"
+                    $errorMessage = "There an issue getting details for $CacheID from $ComputerName"
+                    $exception = New-Object System.InvalidOperationException $errorMessage
+                    $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, 'CacheDetailsException', [System.Automation.ErrorCategoty]::InvalidOperation, $null
+                    throw $errorRecord 
                 }
             }
             if($CacheDetails){
