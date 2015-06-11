@@ -3,7 +3,7 @@
     Write tests to run disconnected
 #>
 
-Import-Module ./NCache.psm1  -Prefix 'Test' -Force
+Import-Module $PSScriptRoot/NCache.psm1  -Prefix 'Test' -Force
 $secpasswd = ConvertTo-SecureString 'PlainTextPassword' -AsPlainText -Force
 $Cred = New-Object -TypeName PSCredential('username',$secpasswd)
 
@@ -116,7 +116,7 @@ Status:         Stopped
         }
 
         It 'returns an object' {
-            $localCache.GetType().Name | Should Be 'PSCustomObject'
+            $localCache.GetType().Name | Should Be 'Cache'
         }
 
         It 'returns object with cache id somecache' {
@@ -172,7 +172,7 @@ Status:         Stopped
         }
 
         It 'returns an object' {
-            $Cache.GetType().Name | Should Be 'PSCustomObject'
+            $Cache.GetType().Name | Should Be 'Cache'
         }
 
         It 'returns object with cache id somecache' {
@@ -306,26 +306,7 @@ Cache item count:10
 }
 
 Describe 'Clear-Cache' {
-    Context 'Parameters' {
-        $params = (Get-Command Clear-TestCache).Parameters
-
-        It 'should accept ComputerName as a parameter' {
-            $params.ContainsKey('ComputerName') | Should Be $true
-        }
-
-        It 'Should accept CacheID as a parameter' {
-            $params.ContainsKey('CacheId') | Should Be $true
-        }
-
-        It 'Should accept Credential as a parameter' {
-            $params.ContainsKey('Credential') | Should Be $true
-        }
-
-        It 'Should accept Endpoint as a parameter' {
-            $params.ContainsKey('EndPoint') | Should Be $true
-        }
-
-    }
+   
 }
 
 Describe 'Get-CacheItem' {
@@ -333,25 +314,7 @@ Describe 'Get-CacheItem' {
         $dumpcache = @"
 GetProspectClientOrgIds_2503a9cd-b7e4-49a8-a0ec-f921e358432eafm
 "@
-    Write-Output $dumpcache
-    }
-    Context 'Parameters' {
-        $params = (Get-Command Get-TestCacheItem).Parameters
-        It 'should accept ComputerName as a parameter' {
-            $params.ContainsKey('ComputerName') | Should Be $true
-        }
-
-        It 'should accept CacheID as a parameter' {
-            $params.ContainsKey('CacheID') | Should Be $true
-        }
-
-        It 'should accept Credential as a parameter' {
-            $params.ContainsKey('Credential') | Should Be $true
-        }
-
-        It 'should accept Endpoint as a parameter' {
-            $params.ContainsKey('EndPoint') | Should Be $true
-        }
+        Write-Output $dumpcache
     }
 
     $CacheItems = Get-TestCacheItem -ComputerName 'server01' -Credential $Cred -CacheID 'Cache001'
@@ -483,6 +446,13 @@ Describe 'Add-CacheTestItem'{
 }
 
 Describe 'New-Cache' {
+      $params = @{
+        ComputerName = 'Server0001'
+        Credential = $Cred
+        CacheID = 'TestCache0001'
+        ClusterPort = 9999
+      }
+      
       Mock -ModuleName NCache -CommandName Invoke-Command {
         'Cache added'
       }
@@ -490,34 +460,50 @@ Describe 'New-Cache' {
       Mock -ModuleName NCache -CommandName Get-CacheDetails {
         'Cache details'
       }
-
+      
+      Mock -ModuleName NCache -CommandName Add-CacheClusterMember {
+        return $true  
+      }
+        
       It 'Should Create new Cache instance'{
-          New-TestCache -ComputerName 'Server0001' -Credential $Cred -CacheID 'TestCache0001' -ClusterPort  9999
+          New-TestCache @params
           Assert-MockCalled -ModuleName NCache -CommandName Invoke-Command -Exactly 1
       }
 
-      Context 'Parameters' {
-        $parameters = (Get-Command New-TestCache).Parameters
+      It 'Should Call Add-CacheClusterMember'{
+        New-TestCache @params -ClusterMember 'Server0002'
+        Assert-MockCalled -ModuleName NCache -CommandName Add-CacheClusterMember -Exactly 1  
+      }
+}
 
-        It 'Should accept Computername as a parameter'{
-            $parameters.ContainsKey('ComputerName') | Should Be $true
-        }
-
-        It 'Should accept CacheID as a parameter'{
-            $parameters.ContainsKey('CacheID') | Should Be $true
-        }
-
-        It 'Should accept Credential as a parameter'{
-            $parameters.ContainsKey('Credential') | Should Be $true
-        }
-
-        It 'Should accept EndPoint as a parameter'{
-            $parameters.ContainsKey('EndPoint') | Should Be $true
-        }
-
-         It 'Should accept Port as a parameter'{
-            $parameters.ContainsKey('Port') | Should Be $true
-        }
-
+Describe 'Add-CacheClusterMember'{
+    Mock -CommandName Invoke-Command -ModuleName NCache -MockWith {
+        return $true
     }
+
+    Context 'Adding one server'{
+        It 'should add Server as Member to NCache Cluster'{
+            Add-TestCacheClusterMember -ComputerName 'Server0001' -CacheID Cache001 -NewNode Server0002 -Credential $Cred
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Scope It -Exactly 1     
+        }
+    }
+
+    Context 'Adding 2 servers'{
+        It 'Should add mutiple servers as members to NCache Cluster'{
+            Add-TestCacheClusterMember -ComputerName 'Server0001','Server00002' -CacheID Cache001 -NewNode Server0002 -Credential $Cred  
+            Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Scope It -Exactly 2  
+        }
+    }
+}
+
+Describe 'Remove-CacheClusterMember'{
+    Mock -CommandName Invoke-Command -ModuleName NCache -MockWith {
+        return $true
+    }
+
+    It 'Should remove server as a member of NCache Cluster' {
+        Remove-TestCacheClusterMember -ComputerName 'Server0001' -CacheID Cache0001 -Node Server0002 -Credential $Cred
+        Assert-MockCalled -CommandName Invoke-Command -ModuleName NCache -Scope It -Exactly 1
+    }
+
 }

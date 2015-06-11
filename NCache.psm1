@@ -1,6 +1,102 @@
 ﻿#REQUIRES -Version 2.0
 
 <#
+    .SYNOPSIS
+        Adds Cluster Member to existing Cache Cluster
+
+    .PARAMETER ComputerName
+        Server Name where the cache has already been created
+
+    .PARAMETER CacheID
+        Name of the clustered Cache
+
+    .PARAMETER NewNode
+        Name of the Server to add to the Cluster
+
+    .Credential 
+
+#>
+Function Add-CacheClusterMember{
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+        [System.string[]]
+        $ComputerName,
+
+        [System.String]
+        $CacheID,
+
+        [System.String]
+        $NewNode,
+
+        [PSCredential]
+        $Credential
+    )
+
+    BEGIN{
+        $AddNode = {
+            param(
+                $NewNode,
+                $CacheID,
+                $ComputerName
+            )
+            
+            & addnode $CacheID /e $ComputerName /n $NewNode | Out-Null
+            & startcache $CacheID /s $NewNode | Out-Null
+            
+        }
+    }
+    
+    PROCESS{
+        $ComputerName | foreach {
+            Write-Verbose "Adding $NewNode to $CacheID and the starting it"
+            try{
+                if($PSCmdlet.ShouldProcess("$CacheID on $NewNode, adding cache and starting")){
+                    Invoke-Command -ComputerName $_ -Credential $Credential -ArgumentList $NewNode,$CacheID,$ComputerName -ScriptBlock $AddNode
+                }
+            }
+            catch{
+                throw
+            }
+        }
+    }
+
+    END{}
+    
+
+}
+
+<#
+    .SYNOPSIS
+        Remove Server from the Cache Cluster
+
+    .DESCRIPTION
+
+#>
+Function Remove-CacheClusterMember{
+    [CmdletBinding()]
+    param(
+        [System.String]
+        $ComputerName,
+
+        [System.String]
+        $CacheID,
+
+        [System.String]
+        $Node,
+
+        [PSCredential]
+        $Credential
+    )
+
+    $RemoveNode = {
+        param($node,$cacheid)
+        & removenode $cacheid /s $node | Out-Null
+    }
+
+    Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $RemoveNode -ArgumentList $Node,$CacheID
+}
+
+<#
     .Synopsis
         Adds a new cache to an NCache Server
     
@@ -103,9 +199,10 @@ function New-Cache{
         try{
             if($PSBoundParameters.ContainsKey('ClusterMember')){
                 Write-Verbose "Making Remote call to $ComputerName to Add $ClusterMember to $CacheID"
-                $parameters.ScriptBlock = $AddNodeBlock
-                $parameters.ArgumentList = @($CacheID,$ComputerName,$ClusterMember)
-                Invoke-Command @parameters | Out-Null
+                #$parameters.ScriptBlock = $AddNodeBlock
+                #$parameters.ArgumentList = @($CacheID,$ComputerName,$ClusterMember)
+                #Invoke-Command @parameters | Out-Null
+                Add-CacheClusterMember -ComputerName $ComputerName -CacheID $CacheID -NewNode $ClusterMember
                 Write-Verbose "$ClusterMember has been added to $CacheID"   
             }
         }
@@ -252,10 +349,33 @@ function Get-CacheDetails{
         $Endpoint,
 
         [PSCredential]
-        $Credential
+        $Credential = (Get-Credential)
     )
 
     BEGIN{
+        $CacheModel = @'
+using System;
+
+public class Cache
+{
+    public String CacheId { get; set; }
+    public String ComputerName { get; set;}
+    public String ClusterSize { get; set; }
+    public String Count { get; set; }
+    public String Status { get; set; }
+    public String Capacity { get; set; }
+    public String Uptime { get; set; }
+
+    public Cache()
+	{
+       
+	}
+}  
+'@
+        if (-not ([System.Management.Automation.PSTypeName]'Cache').Type){
+            Add-Type -TypeDefinition $CacheModel
+        }
+
         $CacheDetailsBlock = {
             & listcaches /a
         }
@@ -273,10 +393,7 @@ function Get-CacheDetails{
                     $cimParameters = @{
                         ComputerName = $Computer
                         ScriptBlock = $CacheDetailsBlock
-                    }
-
-                    if($PSBoundParameters.ContainsKey('Credential')){
-                        $cimParameters.Add('Credential',$Credential)
+                        Credential = $Credential
                     }
 
                     if($PSBoundParameters.ContainsKey('Endpoint')){
@@ -287,9 +404,11 @@ function Get-CacheDetails{
                 }
                 catch{
                     Write-Warning "there was an issue retrieving $CacheID Details from $Computer"
+                    throw
                 }
             }
             if($CacheDetails){
+
 
                 foreach($cache in $CacheID){
                     $StartIndex = __get-cacheStartIndex -CacheList $CacheDetails -CacheID $cache
@@ -306,7 +425,7 @@ function Get-CacheDetails{
                         Count = $CacheDetails[$StartIndex + (6 + $Clustersize)].Replace('Count:','').TrimStart()
                     }
 
-                    $detailsObject = New-Object -TypeName PSObject -Property $properties
+                    $detailsObject = New-Object -TypeName Cache -Property $properties
 
                     Write-Verbose "validating $cache"
                     if((__ValidateCacheResults $detailsObject $cache)){Write-Output $detailsObject}
@@ -396,6 +515,7 @@ Function Restart-Cache {
             catch{
                 Write-Warning 'There was an issue restarting the cache, here are the parameters you sent'
                 Write-Warning $parameters
+                throw
             }
         }
     }
@@ -733,3 +853,5 @@ Export-ModuleMember -Function Restart-Cache
 Export-ModuleMember -Function Clear-Cache
 Export-ModuleMember -Function Add-CacheTestItem
 Export-ModuleMember -Function New-Cache
+Export-ModuleMember -Function Add-CacheClusterMember
+Export-ModuleMember -Function Remove-CacheClusterMember
