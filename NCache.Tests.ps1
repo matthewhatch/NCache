@@ -109,7 +109,7 @@ Status:         Stopped
         }
     }
     Context 'Get-CacheDetails from local cache' {
-        $localCache = Get-TestCacheDetails -CacheID 'somecache'
+        $localCache = Get-TestCacheDetails -CacheID 'somecache' -Credential $Cred
 
         It 'Calls Get-CacheList 1 Time' {
             Assert-MockCalled -CommandName Get-CacheList -ModuleName NCache -Exactly 1
@@ -221,7 +221,7 @@ Status:         Stopped
     }
 
     Context 'Get-CacheDetails from Array of Remote Caches' {
-        $CacheArray = Get-TestCacheDetails -ComputerName someserver -CacheID somecache,someothercache_DEV
+        $CacheArray = Get-TestCacheDetails -ComputerName someserver -CacheID somecache,someothercache_DEV -Credential $Cred
         It 'returns two objects when an array of two caches is passed to CacheID parameter' {
             $CacheArray.Count | Should Be 2
         }
