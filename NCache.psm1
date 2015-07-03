@@ -217,7 +217,7 @@ function Add-CacheTestItem{
     Name of the Cache on the target machine
 
     .Parameter Endpoint
-    PS Remoting Endpoint/ConfigurationName that is used when running commands on the remote server
+    PS Remoting Endpoint/ConfigurationName that is used when running commands on the remote server. If nothning is passed the default remoting endpoint will be used
     
     .Parameter Credential
     Credential used to connect to the remote server.  By default the cmdlet will run under your logon credentials
@@ -293,24 +293,43 @@ function Get-CacheDetails{
             if($CacheDetails){
 
                 foreach($cache in $CacheID){
-                    $StartIndex = __get-cacheStartIndex -CacheList $CacheDetails -CacheID $cache
-                    Write-Verbose "The start index is $StartIndex"
+                    try{
+                        $StartIndex = __get-cacheStartIndex -CacheList $CacheDetails -CacheID $cache
+                        Write-Verbose "The start index is $StartIndex"
 
-                    $Clustersize = $CacheDetails[$StartIndex + 3].Replace('Cluster size:','').TrimStart()
-                    $properties = @{
-                        ComputerName = $Computer
-                        CacheId = $CacheDetails[$StartIndex].Replace('Cache-ID:','').TrimStart()
-                        Status = $CacheDetails[$StartIndex + 2].Replace('Status:','').TrimStart()
-                        ClusterSize = $Clustersize
-                        Uptime = $CacheDetails[$StartIndex + (4 + $Clustersize)].Replace('UpTime:','').TrimStart()
-                        Capacity = $CacheDetails[$StartIndex + (5 +$Clustersize)].Replace('Capacity:','').TrimStart()
-                        Count = $CacheDetails[$StartIndex + (6 + $Clustersize)].Replace('Count:','').TrimStart()
+                        $Clustersize = _get-clustersize -CacheDetails $CacheDetails -StartIndex $StartIndex #$CacheDetails[$StartIndex + 3].Replace('Cluster size:','').TrimStart()
+                       
+                        if(!([System.String]::IsNullOrEmpty($Clustersize))){
+                            $properties = @{
+                                ComputerName = $Computer
+                                CacheId = $CacheDetails[$StartIndex].Replace('Cache-ID:','').TrimStart()
+                                Status = $CacheDetails[$StartIndex + 2].Replace('Status:','').TrimStart()
+                                ClusterSize = $Clustersize
+                                Uptime = $CacheDetails[$StartIndex + (4 + $Clustersize)].Replace('UpTime:','').TrimStart()
+                                Capacity = $CacheDetails[$StartIndex + (5 +$Clustersize)].Replace('Capacity:','').TrimStart()
+                                Count = $CacheDetails[$StartIndex + (6 + $Clustersize)].Replace('Count:','').TrimStart()
+                            }   
+                        }
+                        else{
+                            Write-Verbose "$cache may be stopped... checking"
+                           $properties = @{
+                                ComputerName = $Computer
+                                CacheID = $CacheDetails[$StartIndex].Replace('Cache-ID:','').TrimStart()
+                                Status = $CacheDetails[$StartIndex + 2].Replace('Status:','').TrimStart()
+                                ClusterSize = $null
+                                Uptime = $null
+                                Capacity = $null
+                                Count = $null
+                           }        
+                        }
                     }
-
+                    catch [System.InvalidOperationException]{
+                       throw 
+                    }
                     $detailsObject = New-Object -TypeName PSObject -Property $properties
 
                     Write-Verbose "validating $cache"
-                    if((__ValidateCacheResults $detailsObject $cache)){Write-Output $detailsObject}
+                    Write-Output $detailsObject
                 }
 
                 Remove-Variable -Name properties
@@ -322,6 +341,18 @@ function Get-CacheDetails{
 
 }
 
+function _get-clustersize{
+    [CmdletBinding()]
+    param(
+        [System.String[]]
+        $CacheDetails,
+
+        [System.Int16]
+        $StartIndex
+    )
+
+    return $CacheDetails[$StartIndex + 3].Replace('Cluster size:','').TrimStart()
+}
 <#
     .Synopsis
         Restart a cache on a specific server
@@ -662,49 +693,6 @@ function __get-CacheStartIndex{
         }
         $i++
     }
-}
-
-function __validateCacheResults{
-    param(
-        [PSObject]$CacheResults,
-        [string]$cache
-    )
-
-    $isValid = $true
-    do{
-        if($CacheResults.CacheID -ne $cache){
-            Write-Verbose "CacheID $cache is not Valid"
-            $isValid = $false
-            return
-        }
-
-        if($CacheResults.Status -ne 'Running'){
-            Write-Verbose "Status $($CacheResults.Status) is not Valid"
-            $isValid = $false
-            break
-        }
-
-        if($CacheResults.Capacity -notmatch 'MB'){
-            Write-Verbose "Cluster Capacity$($CacheResults.Capacity) is not valid"
-            $isValid =$false
-            break
-        }
-
-        if($CacheResults.Clustersize -notmatch '\d+'){
-            Write-Verbose "Cluster Size $($CacheResults.ClusterSize) is not valid"
-            $isValid = $false
-            break
-        }
-
-        if($CacheResults.Count -notmatch '\d+'){
-            Write-Verbose "Count $($CacheResults.Count) is not valid"
-            $isValid = $false
-            break
-        }
-
-    }
-    while($false)
-    return $isValid
 }
 
 Function __addtestdata {
