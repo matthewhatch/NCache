@@ -531,3 +531,35 @@ Describe 'Get-CacheDestails Errors'{
         {Get-CacheDetails -ComputerName 'Server0001' -CacheID 'Cache0001'} | Should Throw 
     }
 }
+
+
+Describe 'Get-CacheDetails when Cache is not running'{
+
+    Mock -CommandName Get-CacheList -ModuleName NCache {
+        $listcaches = @"
+Listing registered caches on server 10.0.2.15:8250
+
+Cache-ID:       myReplicatedCache
+Scheme:         replicated-server
+Status:         Stopped
+
+Cache-ID:       myPartitionedCache
+Scheme:         partitioned-server
+Status:         Stopped
+
+Cache-ID:       myCache
+Scheme:         local-cache
+Status:         Stopped
+
+"@
+    Write-Output ($listcaches -split '\r?\n')       
+    
+    }
+
+    It 'should return status Stopped and CacheID' {
+        $details = Get-TestCacheDetails -CacheID myCache
+        $details.Status | Should Be 'Stopped'
+    }
+
+}
+
