@@ -2,6 +2,8 @@
 
 
 # NCache
+
+[![Join the chat at https://gitter.im/matthewhatch/NCache](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/matthewhatch/NCache?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 NCache Powershell Module -- Used to get data from Alachisoft NCache
 
 I do a lot of work with applications that use Alachisoft's Ncache Distributed Cache and am frustrated with the command line tools that are shipped with the product. Here is a PowerShell module I just started working on to bridge the gap.
