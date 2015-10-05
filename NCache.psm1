@@ -747,7 +747,8 @@ Function Add-QueryIndex {
         if ($PropertyNames -eq $null)
         {
             Add-Type -Path $AssemblyPath
-            $PropertyNames = New-Object -Type $TypeName | Get-Member -MemberType Properties | Select-Object Name | % {$_.Name}
+            $type = New-Object -TypeName $TypeName
+            $PropertyNames =  $type | Get-Member -MemberType Properties | Select-Object Name | % {$_.Name}
         }
         $Properties = [string]::Join("$", $PropertyNames)
     }
