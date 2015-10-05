@@ -683,7 +683,7 @@ Function Get-CacheItem {
         Adds a Query Index to a Cache
 
     .Description
-        Adds a Query Index to the Target Cache on the Target Server. This is required for Linq and Search expressions. This uses the createqueryindex cmdline utility
+        Adds a Query Index to the Target Cache on the Target Server. This is required for Linq and Search expressions. This uses the addqueryindex cmdline utility
 
     .Parameter Computer
         Target Server
@@ -693,6 +693,15 @@ Function Get-CacheItem {
 
     .Parameter Credential
         Credential used to connect to the remote server
+
+    .Parameter AssemblyPath
+        Full path to the Assembly containing the Type to index
+
+    .Parameter TypeName
+        Full Name of Type in Assembly
+
+    .Parameter PropertyNames
+        Array of the Names of the Properties to index. Defaults to all Properties if absent from command        
 
     .Parameter Endpoint
         Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
@@ -770,6 +779,32 @@ Function Add-QueryIndex {
 
 }
 
+
+<#
+    .Synopsis
+        Removes a Query Index from a Cache
+
+    .Description
+        Remove a Query Index to the Target Cache on the Target Server. Index must have been added already. This uses the removequeryindex cmdline utility
+
+    .Parameter Computer
+        Target Server
+
+    .Parameter CacheID
+        Target Cache
+
+    .Parameter Credential
+        Credential used to connect to the remote server
+
+    .Parameter TypeName
+        Full Name of Type in Assembly
+
+    .Parameter Endpoint
+        Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
+
+    .Example Remove-QueryIndex -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential) -Type My.Namespace.Foo
+
+#>
 
 Function Remove-QueryIndex {
     [CmdletBinding()]
