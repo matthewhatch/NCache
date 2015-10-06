@@ -677,6 +677,191 @@ Function Get-CacheItem {
 
 }
 
+
+<#
+    .Synopsis
+        Adds a Query Index to a Cache
+
+    .Description
+        Adds a Query Index to the Target Cache on the Target Server. This is required for Linq and Search expressions. This uses the addqueryindex cmdline utility
+
+    .Parameter Computer
+        Target Server
+
+    .Parameter CacheID
+        Target Cache
+
+    .Parameter Credential
+        Credential used to connect to the remote server
+
+    .Parameter AssemblyPath
+        Full path to the Assembly containing the Type to index
+
+    .Parameter TypeName
+        Full Name of Type in Assembly
+
+    .Parameter PropertyNames
+        Array of the Names of the Properties to index. Defaults to all Properties if absent from command        
+
+    .Parameter Endpoint
+        Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
+
+    .Example Add-QueryIndex -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential) -Type My.Namespace.Foo -Assembly "C:\myapp\bin\My.Namespace.dll" -Properties @("Baz","Bar")
+
+#>
+
+Function Add-QueryIndex {
+    [CmdletBinding()]
+    param(
+        [System.string]
+        $ComputerName,
+
+        [Parameter(Mandatory=$true)]
+        [System.string]
+        $CacheID,
+
+        [PSCredential]
+        $Credential,
+
+        [System.String]
+        $Endpoint,
+
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $TypeName,
+
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $AssemblyPath,
+        
+        [System.String[]]
+        $PropertyNames
+    )
+
+    BEGIN{
+        $GetCacheItemBlock = {
+            param($CacheID)
+            & addqueryindex $CacheID /a $AssemblyPath /c $TypeName /L $Properties /nologo 
+        }
+
+        if ($PropertyNames -eq $null)
+        {
+            Add-Type -Path $AssemblyPath
+            $type = New-Object -TypeName $TypeName
+            $PropertyNames =  $type | Get-Member -MemberType Properties | Select-Object Name | % {$_.Name}
+        }
+        $Properties = [string]::Join("$", $PropertyNames)
+    }
+
+    PROCESS {
+        $InvokeParams = @{            
+            ScriptBlock = $GetCacheItemBlock
+            ArgumentList = @($CacheID, $AssemblyPath, $TypeName, $Properties)
+        }
+
+        if($PSBoundParameters.ContainsKey('ComputerName')){
+            $InvokeParams.Add('ComputerName',$ComputerName)
+        }
+        
+  
+        if($PSBoundParameters.ContainsKey('Credential')){
+            $InvokeParams.Add('Credential',$Credential)
+        }
+
+        if($PSBoundParameters.ContainsKey('Endpoint')){
+            $InvokeParams.Add('ConfigurationName',$Endpoint)
+        }
+
+        $results = Invoke-Command @InvokeParams
+        Write-Host $results
+    }
+
+    END {}
+
+}
+
+
+<#
+    .Synopsis
+        Removes a Query Index from a Cache
+
+    .Description
+        Remove a Query Index to the Target Cache on the Target Server. Index must have been added already. This uses the removequeryindex cmdline utility
+
+    .Parameter Computer
+        Target Server
+
+    .Parameter CacheID
+        Target Cache
+
+    .Parameter Credential
+        Credential used to connect to the remote server
+
+    .Parameter TypeName
+        Full Name of Type in Assembly
+
+    .Parameter Endpoint
+        Name of PS Remoting Endpoint/Configuration used when connecting to remote servers
+
+    .Example Remove-QueryIndex -ComputerName Server0001 -CacheID Cache0001 -Credential (Get-Credential) -Type My.Namespace.Foo
+
+#>
+
+Function Remove-QueryIndex {
+    [CmdletBinding()]
+    param(
+        [System.string]
+        $ComputerName,
+
+        [Parameter(Mandatory=$true)]
+        [System.string]
+        $CacheID,
+
+        [PSCredential]
+        $Credential,
+
+        [System.String]
+        $Endpoint,
+
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $TypeName        
+    )
+
+    BEGIN{
+        $GetCacheItemBlock = {
+            param($CacheID)
+            & removequeryindex $CacheID /c $TypeName /nologo 
+        }       
+    }
+
+    PROCESS {
+        $InvokeParams = @{            
+            ScriptBlock = $GetCacheItemBlock
+            ArgumentList = @($CacheID, $TypeName)
+        }
+
+        if($PSBoundParameters.ContainsKey('ComputerName')){
+            $InvokeParams.Add('ComputerName',$ComputerName)
+        }
+        
+  
+        if($PSBoundParameters.ContainsKey('Credential')){
+            $InvokeParams.Add('Credential',$Credential)
+        }
+
+        if($PSBoundParameters.ContainsKey('Endpoint')){
+            $InvokeParams.Add('ConfigurationName',$Endpoint)
+        }
+
+        $results = Invoke-Command @InvokeParams
+        Write-Host $results
+    }
+
+    END {}
+
+}
+
 function __get-CacheStartIndex{
     <#
         .Synopsis Validate the results from cache server are valid
@@ -722,3 +907,5 @@ Export-ModuleMember -Function Restart-Cache
 Export-ModuleMember -Function Clear-Cache
 Export-ModuleMember -Function Add-CacheTestItem
 Export-ModuleMember -Function New-Cache
+Export-ModuleMember -Function Add-QueryIndex
+Export-ModuleMember -Function Remove-QueryIndex

@@ -518,7 +518,6 @@ Describe 'New-Cache' {
          It 'Should accept Port as a parameter'{
             $parameters.ContainsKey('Port') | Should Be $true
         }
-
     }
 }
 
@@ -560,6 +559,76 @@ Status:         Stopped
         $details = Get-TestCacheDetails -CacheID myCache
         $details.Status | Should Be 'Stopped'
     }
-
 }
 
+Describe 'Add-QueryIndex'{
+    Context 'Parameters'{
+        $parameters = (Get-Command Add-TestQueryIndex).Parameters
+
+        It 'Should accept ComputerName as a parameter'{
+            $parameters.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter'{
+            $parameters.ContainsKey('CacheID') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter'{
+            $parameters.ContainsKey('Credential') | Should Be $true
+        }
+
+        It 'Should accept EndPoint as a parameter'{
+            $parameters.ContainsKey('EndPoint') | Should Be $true
+        }        
+
+        It 'Should accept AssemblyPath as a parameter'{
+            $parameters.ContainsKey('AssemblyPath') | Should Be $true
+        }
+
+        It 'Should accept TypeName as a parameter'{
+            $parameters.ContainsKey('TypeName') | Should Be $true
+        }
+
+        It 'Should accept PropertyNames as a parameter'{
+            $parameters.ContainsKey('PropertyNames') | Should Be $true
+        }
+    }
+
+    Context 'When no argument is passed to PropertyNames'{
+        Mock -CommandName Add-Type -ModuleName NCache -ParameterFilter { $Path -eq "C:\test\a.b.c.dll" } -MockWith {}
+        Mock -CommandName New-Object -ModuleName NCache -ParameterFilter { $TypeName -eq "a.b.c.foo" } -MockWith { return New-Object -TypeName PSObject -Prop @{"Foo"="1";"Bar"="2"} }         
+        Mock -CommandName Invoke-Command -ModuleName NCache { $global:properties = $InvokeParams["ArgumentList"][3] }
+        It 'Should use all properties if PropertyNames is absent' {
+            Add-TestQueryIndex -CacheID "Test" -AssemblyPath "C:\test\a.b.c.dll" -TypeName "a.b.c.foo"
+            $global:properties | Should Be "Bar`$Foo"
+            Remove-Variable -Scope global -Name properties
+        }
+    }
+}
+
+Describe 'Remove-QueryIndex'{
+    Context 'Parameters'{
+        $parameters = (Get-Command Remove-TestQueryIndex).Parameters
+
+        It 'Should accept ComputerName as a parameter'{
+            $parameters.ContainsKey('ComputerName') | Should Be $true
+        }
+
+        It 'Should accept CacheID as a parameter'{
+            $parameters.ContainsKey('CacheID') | Should Be $true
+        }
+
+        It 'Should accept Credential as a parameter'{
+            $parameters.ContainsKey('Credential') | Should Be $true
+        }
+
+        It 'Should accept EndPoint as a parameter'{
+            $parameters.ContainsKey('EndPoint') | Should Be $true
+        }        
+ 
+
+        It 'Should accept TypeName as a parameter'{
+            $parameters.ContainsKey('TypeName') | Should Be $true
+        }   
+    }
+}
