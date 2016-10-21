@@ -18,6 +18,7 @@ TODO
 * Add Remove-Cache Cmdlet
 * Improved Help
 * More Tests
+* Add Contribution Guidelines
 
 ```powershell
 Get-CacheDetails -ComputerName Server01 -CacheID Cache0001 -Credential $MyCred
@@ -34,12 +35,12 @@ Get-CacheDetails -ComputerName Server01 -CacheID Cache0001 -Credential $MyCred
 
         .Parameter CacheID
         Name of the Cache that to return the details of
-            
+
 #>
 
 Get-CacheCount -ComputerName Server01 -CacheID Cache0001 -Credential $MyCred
 <#
-        .SYNOPIS 
+        .SYNOPIS
         Returns the number of items for the cache specified
 
         .DESCRIPTION
@@ -52,5 +53,3 @@ Get-CacheCount -ComputerName Server01 -CacheID Cache0001 -Credential $MyCred
         The Name of the server to retreive the cache count from
 #>
 ```
-
-
